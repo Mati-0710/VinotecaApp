@@ -67,50 +67,44 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
     <script>
-        const todasLasCategorias = @Html.Raw(Json.Serialize(
-            ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
-                .Select(c => new { id = c.Id, nombre = c.Nombre, padreId = c.CategoriaPadreId })
-        ));
+        // Apuntamos al ID exacto de tu HTML
+        document.getElementById('categoriaPrincipal').addEventListener('change', function () {
+            const padreId = this.value;
+            const subSelect = document.getElementById('subcategoria'); // Apuntamos a tu select hijo
+            
+            subSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+            subSelect.disabled = true;
 
-        const selectCategoria = document.getElementById('categoriaPrincipal');
-        const selectSubcategoria = document.getElementById('subcategoria');
-
-        selectCategoria.addEventListener('change', function () {
-            const categoriaId = this.value;
-            selectSubcategoria.innerHTML = '';
-
-            if (!categoriaId) {
-                selectSubcategoria.disabled = true;
-                selectSubcategoria.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
+            if (!padreId) {
+                subSelect.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
                 return;
             }
 
-            const hijos = todasLasCategorias.filter(c => c.padreId == categoriaId);
-
-            if (hijos.length === 0) {
-                // Esta categoría no tiene subcategorías propias (ej: Cristalería):
-                // se usa directamente a sí misma como categoría final.
-                // OJO: el select queda HABILITADO (no disabled) para que su valor se envíe en el submit.
-                const principal = todasLasCategorias.find(c => c.id == categoriaId);
-                selectSubcategoria.disabled = false;
-                selectSubcategoria.innerHTML = '';
-                const opt = document.createElement('option');
-                opt.value = principal.id;
-                opt.textContent = principal.nombre;
-                opt.selected = true;
-                selectSubcategoria.appendChild(opt);
-                return;
-            }
-
-            selectSubcategoria.disabled = false;
-            selectSubcategoria.innerHTML = '<option value="">-- Seleccionar --</option>';
-            hijos.forEach(function (c) {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.nombre;
-                selectSubcategoria.appendChild(opt);
-            });
+            fetch(`/Productos/GetSubcategorias?categoriaPadreId=${padreId}`)
+                .then(response => response.json())
+                .then(data => {
+                    subSelect.innerHTML = '<option value="">-- Seleccionar Subcategoría --</option>';
+                    
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.value;
+                            option.textContent = item.text;
+                            subSelect.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = padreId;
+                        option.textContent = "Sin subcategorías (Guardar en categoría principal)";
+                        subSelect.appendChild(option);
+                        subSelect.value = padreId; 
+                    }
+                    
+                    subSelect.disabled = false;
+                })
+                .catch(error => console.error('Error cargando subcategorías:', error));
         });
     </script>
 }

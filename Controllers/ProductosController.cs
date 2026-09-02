@@ -15,30 +15,38 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: Productos
-        public async Task<IActionResult> Index(int? categoriaId)
+        // GET: Productos
+        public async Task<IActionResult> Index(int? categoriaId, string buscar)
         {
             var query = _context.Productos
-                .Include(p => p.Categoria)
-                .AsQueryable();
+            .Include(p => p.Categoria)
+            .AsQueryable();
 
+            // 1. Filtro por texto (Buscador)
+            if (!string.IsNullOrEmpty(buscar))
+            {
+            // EF Core traduce el Contains a un LIKE '%buscar%' en SQL Server
+            query = query.Where(p => p.Nombre.Contains(buscar));
+            }
+
+            // 2. Filtro por categoría (el que ya armamos)
             if (categoriaId.HasValue)
             {
-                query = query.Where(p => p.CategoriaId == categoriaId.Value);
+            query = query.Where(p => p.CategoriaId == categoriaId.Value || 
+                                 p.Categoria!.CategoriaPadreId == categoriaId.Value);
             }
 
             var productos = await query
-                .OrderBy(p => p.Categoria!.Nombre)
-                .ThenBy(p => p.Nombre)
-                .ToListAsync();
+            .OrderBy(p => p.Categoria!.Nombre)
+            .ThenBy(p => p.Nombre)
+            .ToListAsync();
 
-            // Para el filtro de arriba de la tabla mostramos TODAS las categorías,
-            // incluyendo las agrupadoras (ej: "Vinos"), porque filtrar por "Vinos"
-            // tiene que mostrar todos los vinos sin importar la subcategoría.
             ViewBag.Categorias = await _context.Categorias
-                .OrderBy(c => c.Nombre)
-                .ToListAsync();
+            .OrderBy(c => c.Nombre)
+            .ToListAsync();
 
             ViewBag.CategoriaSeleccionada = categoriaId;
+            ViewBag.Buscar = buscar; // Guardamos el texto para que no se borre del input al recargar
 
             return View(productos);
         }
@@ -67,11 +75,16 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: Productos/Edit/5
+        // GET: Productos/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
 
-            var producto = await _context.Productos.FindAsync(id);
+            // Agregamos el Include para traernos la categoría con el producto
+            var producto = await _context.Productos
+            .Include(p => p.Categoria)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        
             if (producto == null) return NotFound();
 
             await CargarCategoriasSeleccionables();
@@ -127,9 +140,22 @@ namespace VinotecaApp.Controllers
         // "Vinos" queda afuera (es agrupadora); "Malbec", "Cervezas", "Cristalería", etc. quedan adentro.
        private async Task CargarCategoriasSeleccionables()
        {
+    // Modificado: Solo trae las categorías "padre" (Vinos, Cervezas, etc.)
             ViewBag.Categorias = await _context.Categorias
+            .Where(c => c.CategoriaPadreId == null)
             .OrderBy(c => c.Nombre)
             .ToListAsync();
+        }
+        [HttpGet]
+        public async Task<JsonResult> GetSubcategorias(int categoriaPadreId)
+        {
+             var subcategorias = await _context.Categorias
+             .Where(c => c.CategoriaPadreId == categoriaPadreId)
+             .Select(c => new { value = c.Id, text = c.Nombre })
+             .OrderBy(c => c.text)
+             .ToListAsync();
+
+             return Json(subcategorias);
         }
     }
 }
