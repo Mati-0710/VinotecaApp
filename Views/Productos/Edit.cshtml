@@ -1,0 +1,133 @@
+@model VinotecaApp.Models.Producto
+
+@{
+    ViewData["Title"] = "Editar Producto";
+    var categoriasPrincipales = ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
+        .Where(c => c.CategoriaPadreId == null).ToList();
+    var subcategorias = ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
+        .Where(c => c.CategoriaPadreId != null).ToList();
+    var subcategoriaActual = subcategorias.FirstOrDefault(s => s.Id == Model.CategoriaId);
+    int? categoriaPadreActual = subcategoriaActual?.CategoriaPadreId;
+}
+
+<h1>Editar Producto</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group mb-2">
+                <label asp-for="Nombre" class="control-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-2">
+                <label asp-for="Descripcion" class="control-label"></label>
+                <input asp-for="Descripcion" class="form-control" />
+                <span asp-validation-for="Descripcion" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-2">
+                <label class="control-label">Categoría Principal</label>
+                <select id="categoriaPrincipal" class="form-select">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach (var c in categoriasPrincipales)
+                    {
+                        if (categoriaPadreActual.HasValue && categoriaPadreActual.Value == c.Id)
+                        {
+                            <option value="@c.Id" selected>@c.Nombre</option>
+                        }
+                        else
+                        {
+                            <option value="@c.Id">@c.Nombre</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label">Subcategoría</label>
+                <select asp-for="CategoriaId" id="subcategoria" class="form-select">
+                    <option value="">-- Seleccionar --</option>
+                </select>
+                <span asp-validation-for="CategoriaId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-2">
+                <label asp-for="Precio" class="control-label"></label>
+                <input asp-for="Precio" class="form-control" />
+                <span asp-validation-for="Precio" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="Stock" class="control-label"></label>
+                <input asp-for="Stock" class="form-control" />
+                <span asp-validation-for="Stock" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Guardar" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Volver al listado</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const subcategoriasPorPadre = @Html.Raw(Json.Serialize(
+            subcategorias.Select(s => new { id = s.Id, nombre = s.Nombre, padreId = s.CategoriaPadreId })
+        ));
+        const categoriaIdActual = @Model.CategoriaId;
+
+        const selectCategoria = document.getElementById('categoriaPrincipal');
+        const selectSubcategoria = document.getElementById('subcategoria');
+
+        function cargarSubcategorias(categoriaId, idAPreseleccionar) {
+    selectSubcategoria.innerHTML = '';
+
+    if (!categoriaId) {
+        selectSubcategoria.disabled = true;
+        selectSubcategoria.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
+        return;
+    }
+
+    const hijos = subcategoriasPorPadre.filter(s => s.padreId == categoriaId);
+
+    if (hijos.length === 0) {
+        // Esta categoría no tiene subcategorías propias (ej: Cristalería):
+        // se usa directamente a sí misma. El select queda HABILITADO para que se envíe en el submit.
+        selectSubcategoria.disabled = false;
+        const opt = document.createElement('option');
+        opt.value = categoriaId;
+        opt.textContent = selectCategoria.options[selectCategoria.selectedIndex].textContent;
+        opt.selected = true;
+        selectSubcategoria.appendChild(opt);
+        return;
+    }
+
+    selectSubcategoria.disabled = false;
+    selectSubcategoria.innerHTML = '<option value="">-- Seleccionar --</option>';
+    hijos.forEach(function (s) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.nombre;
+        if (idAPreseleccionar && s.id == idAPreseleccionar) {
+            opt.selected = true;
+        }
+        selectSubcategoria.appendChild(opt);
+    });
+}
+
+        // Al cargar la página: cargamos las subcategorías del padre actual, preseleccionando la subcategoría del producto
+        cargarSubcategorias(selectCategoria.value, categoriaIdActual);
+
+        // Al cambiar la categoría principal manualmente, recargamos sin preseleccionar nada
+        selectCategoria.addEventListener('change', function () {
+            cargarSubcategorias(this.value, null);
+        });
+    </script>
+}

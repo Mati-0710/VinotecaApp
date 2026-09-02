@@ -1,0 +1,77 @@
+@model VinotecaApp.Models.VentaCreateViewModel
+
+@{
+    ViewData["Title"] = "Ventas";
+}
+
+<h1>Ventas</h1>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<h4>Nueva Venta</h4>
+<form asp-action="Create" method="post" class="mb-5">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Cliente</label>
+            <select asp-for="ClienteId" asp-items="@(new SelectList(ViewBag.Clientes, "Id", "NombreCompleto"))" class="form-select">
+                <option value="">-- Seleccionar --</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Medio de Pago</label>
+            <select asp-for="MedioPago" class="form-select">
+                <option value="Efectivo">Efectivo</option>
+                <option value="CuentaCorriente">Cuenta Corriente</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Lineas.Count; i++)
+            {
+                <tr>
+                    <td>
+                        <select name="Lineas[@i].ProductoId" class="form-select" asp-items="@(new SelectList(ViewBag.Productos, "Id", "Nombre"))">
+                            <option value="">-- Ninguno --</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="Lineas[@i].Cantidad" class="form-control" min="1" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Confirmar Venta</button>
+</form>
+
+<h4>Historial de Ventas</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Medio de Pago</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var venta in (IEnumerable<VinotecaApp.Models.Venta>)ViewBag.Ventas)
+        {
+            <tr>
+                <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@(venta.Cliente != null ? venta.Cliente.Apellido + ", " + venta.Cliente.Nombre : "-")</td>
+                <td>@venta.MedioPago</td>
+                <td>@venta.Total.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>

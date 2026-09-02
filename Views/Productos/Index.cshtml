@@ -1,0 +1,61 @@
+@model IEnumerable<VinotecaApp.Models.Producto>
+
+@{
+    ViewData["Title"] = "Productos";
+    var categorias = (List<VinotecaApp.Models.Categoria>)ViewBag.Categorias;
+    int? categoriaSeleccionada = ViewBag.CategoriaSeleccionada;
+}
+
+<h1>Productos</h1>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <form method="get" asp-action="Index">
+            <label class="form-label">Filtrar por categoría</label>
+            <select name="categoriaId" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Todas --</option>
+                @foreach (var c in categorias)
+                {
+                    if (categoriaSeleccionada.HasValue && categoriaSeleccionada.Value == c.Id)
+                    {
+                        <option value="@c.Id" selected>@(c.CategoriaPadreId != null ? "— " : "")@c.Nombre</option>
+                    }
+                    else
+                    {
+                        <option value="@c.Id">@(c.CategoriaPadreId != null ? "— " : "")@c.Nombre</option>
+                    }
+                }
+            </select>
+        </form>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <a asp-action="Create" class="btn btn-primary">Nuevo Producto</a>
+    </div>
+</div>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Nombre</td>
+                <td>@(item.Categoria != null ? item.Categoria.Nombre : "-")</td>
+                <td>@item.Precio.ToString("C")</td>
+                <td>@item.Stock</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Editar</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

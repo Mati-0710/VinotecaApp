@@ -1,0 +1,116 @@
+@model VinotecaApp.Models.Producto
+
+@{
+    ViewData["Title"] = "Nuevo Producto";
+    var categoriasPrincipales = ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
+        .Where(c => c.CategoriaPadreId == null).ToList();
+    var subcategorias = ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
+        .Where(c => c.CategoriaPadreId != null).ToList();
+}
+
+<h1>Nuevo Producto</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group mb-2">
+                <label asp-for="Nombre" class="control-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-2">
+                <label asp-for="Descripcion" class="control-label"></label>
+                <input asp-for="Descripcion" class="form-control" />
+                <span asp-validation-for="Descripcion" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-2">
+                <label class="control-label">Categoría Principal</label>
+                <select id="categoriaPrincipal" class="form-select">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach (var c in categoriasPrincipales)
+                    {
+                        <option value="@c.Id">@c.Nombre</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label">Subcategoría</label>
+                <select asp-for="CategoriaId" id="subcategoria" class="form-select" disabled>
+                    <option value="">-- Elegí primero una categoría --</option>
+                </select>
+                <span asp-validation-for="CategoriaId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-2">
+                <label asp-for="Precio" class="control-label"></label>
+                <input asp-for="Precio" class="form-control" />
+                <span asp-validation-for="Precio" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="Stock" class="control-label"></label>
+                <input asp-for="Stock" class="form-control" />
+                <span asp-validation-for="Stock" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Guardar" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Volver al listado</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const todasLasCategorias = @Html.Raw(Json.Serialize(
+            ((List<VinotecaApp.Models.Categoria>)ViewBag.Categorias)
+                .Select(c => new { id = c.Id, nombre = c.Nombre, padreId = c.CategoriaPadreId })
+        ));
+
+        const selectCategoria = document.getElementById('categoriaPrincipal');
+        const selectSubcategoria = document.getElementById('subcategoria');
+
+        selectCategoria.addEventListener('change', function () {
+            const categoriaId = this.value;
+            selectSubcategoria.innerHTML = '';
+
+            if (!categoriaId) {
+                selectSubcategoria.disabled = true;
+                selectSubcategoria.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
+                return;
+            }
+
+            const hijos = todasLasCategorias.filter(c => c.padreId == categoriaId);
+
+            if (hijos.length === 0) {
+                // Esta categoría no tiene subcategorías propias (ej: Cristalería):
+                // se usa directamente a sí misma como categoría final.
+                // OJO: el select queda HABILITADO (no disabled) para que su valor se envíe en el submit.
+                const principal = todasLasCategorias.find(c => c.id == categoriaId);
+                selectSubcategoria.disabled = false;
+                selectSubcategoria.innerHTML = '';
+                const opt = document.createElement('option');
+                opt.value = principal.id;
+                opt.textContent = principal.nombre;
+                opt.selected = true;
+                selectSubcategoria.appendChild(opt);
+                return;
+            }
+
+            selectSubcategoria.disabled = false;
+            selectSubcategoria.innerHTML = '<option value="">-- Seleccionar --</option>';
+            hijos.forEach(function (c) {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                selectSubcategoria.appendChild(opt);
+            });
+        });
+    </script>
+}

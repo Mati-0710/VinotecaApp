@@ -1,0 +1,33 @@
+@model IEnumerable<VinotecaApp.Models.Pago>
+
+@{
+    ViewData["Title"] = "Pagos";
+}
+
+<h1>Pagos</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Registrar Pago</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Monto</th>
+            <th>Medio de Pago</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pago in Model)
+        {
+            <tr>
+                <td>@pago.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@(pago.Cliente != null ? pago.Cliente.Apellido + ", " + pago.Cliente.Nombre : "-")</td>
+                <td>@pago.Monto.ToString("C")</td>
+                <td>@pago.MedioPago</td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,65 @@
+/* ==== Tipografía ==== */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --vino-oscuro: #2B1B2F;
+    --vino-bordo: #722F37;
+    --vino-crema: #F5F0E8;
+    --vino-dorado: #C9A66B;
+    --vino-texto: #3A3A3A;
+}
+
+body {
+    background-color: var(--vino-crema);
+    color: var(--vino-texto);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+h1, h2, h3, h4, h5, .navbar-brand {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+}
+
+/* ==== Navbar ==== */
+.navbar {
+    background-color: var(--vino-oscuro) !important;
+}
+
+.navbar-brand, .nav-link {
+    color: var(--vino-crema) !important;
+}
+
+.nav-link:hover {
+    color: var(--vino-dorado) !important;
+}
+
+/* ==== Botones ==== */
+.btn-primary {
+    background-color: var(--vino-bordo);
+    border-color: var(--vino-bordo);
+}
+
+.btn-primary:hover {
+    background-color: var(--vino-oscuro);
+    border-color: var(--vino-oscuro);
+}
+
+/* ==== Cards del Dashboard ==== */
+.card {
+    border-top: 3px solid var(--vino-dorado);
+    border-radius: 6px;
+}
+
+.card.bg-primary {
+    background-color: var(--vino-bordo) !important;
+}
+
+/* ==== Tablas ==== */
+.table thead {
+    background-color: var(--vino-oscuro);
+    color: var(--vino-crema);
+}
+
+.table {
+    background-color: white;
+}
