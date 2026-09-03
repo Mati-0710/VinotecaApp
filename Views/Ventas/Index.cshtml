@@ -1,77 +1,178 @@
 @model VinotecaApp.Models.VentaCreateViewModel
 
 @{
-    ViewData["Title"] = "Ventas";
+    ViewData["Title"] = "Punto de Venta";
 }
 
-<h1>Ventas</h1>
+<!-- Agregamos los estilos de Select2 y su tema para Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Punto de Venta</h1>
+</div>
 
 <div asp-validation-summary="All" class="text-danger"></div>
 
-<h4>Nueva Venta</h4>
-<form asp-action="Create" method="post" class="mb-5">
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label">Cliente</label>
-            <select asp-for="ClienteId" asp-items="@(new SelectList(ViewBag.Clientes, "Id", "NombreCompleto"))" class="form-select">
-                <option value="">-- Seleccionar --</option>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Medio de Pago</label>
-            <select asp-for="MedioPago" class="form-select">
-                <option value="Efectivo">Efectivo</option>
-                <option value="CuentaCorriente">Cuenta Corriente</option>
-            </select>
-        </div>
+<!-- TARJETA: NUEVA VENTA -->
+<div class="card shadow-sm mb-5 border-0">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">Registrar Venta</h5>
     </div>
+    <div class="card-body bg-light">
+        <form asp-action="Create" method="post">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Cliente</label>
+                    <select asp-for="ClienteId" id="clienteSelect" asp-items="@(new SelectList(ViewBag.Clientes, "Id", "NombreCompleto"))" class="form-select">
+                        <option value="">-- Consumidor Final (Buscar cliente...) --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Medio de Pago</label>
+                    <select asp-for="MedioPago" class="form-select">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="CuentaCorriente">Cuenta Corriente</option>
+                    </select>
+                </div>
+            </div>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (int i = 0; i < Model.Lineas.Count; i++)
-            {
+            <div class="table-responsive">
+                <table class="table table-bordered bg-white" id="tablaVentas">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th style="width: 130px;">Cantidad</th>
+                            <!-- Agrandamos el ancho de esta columna para que el total entre holgado -->
+                            <th style="width: 220px;" class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Lineas.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <select name="Lineas[@i].ProductoId" class="form-select select2-producto producto-select">
+                                        <option value="">-- Buscar producto... --</option>
+                                        @foreach (var p in ViewBag.Productos)
+                                        {
+                                            <option value="@p.Id" data-precio="@(((decimal)p.Precio).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))">@p.Nombre</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" name="Lineas[@i].Cantidad" class="form-control cantidad-input" min="1" placeholder="0" />
+                                </td>
+                                <td class="text-end align-middle fw-bold subtotal-cell">
+                                    $0.00
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="text-end align-middle fw-bold fs-5">TOTAL FINAL:</td>
+                            <td>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <!-- Usamos form-control normal (sin -lg) para que no sea tan alto y el número respire bien -->
+                                    <input type="number" step="0.01" name="TotalFinal" id="totalVentaInput" class="form-control fw-bold text-success" />
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <button type="submit" class="btn btn-success btn-lg px-5">Confirmar Venta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TARJETA: HISTORIAL DE VENTAS -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Últimas Ventas</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
                 <tr>
-                    <td>
-                        <select name="Lineas[@i].ProductoId" class="form-select" asp-items="@(new SelectList(ViewBag.Productos, "Id", "Nombre"))">
-                            <option value="">-- Ninguno --</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input type="number" name="Lineas[@i].Cantidad" class="form-control" min="1" />
-                    </td>
+                    <th class="ps-3">Fecha</th>
+                    <th>Cliente</th>
+                    <th>Medio de Pago</th>
+                    <th class="text-end pe-3">Total</th>
                 </tr>
+            </thead>
+            <tbody>
+                @foreach (var venta in (IEnumerable<VinotecaApp.Models.Venta>)ViewBag.Ventas)
+                {
+                    <tr>
+                        <td class="ps-3">@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(venta.Cliente != null ? venta.Cliente.Apellido + ", " + venta.Cliente.Nombre : "Consumidor Final")</td>
+                        <td><span class="badge bg-info text-dark">@venta.MedioPago</span></td>
+                        <td class="text-end pe-3 fw-bold">@venta.Total.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            
+            $('#clienteSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Tipeá para buscar un cliente...",
+                allowClear: true
+            });
+
+            $('.select2-producto').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Buscar producto...",
+                allowClear: true
+            });
+
+            // Función para calcular los subtotales y sugerir el total general
+            function calcularTotales() {
+                let granTotal = 0;
+
+                $('#tablaVentas tbody tr').each(function() {
+                    const fila = $(this);
+                    const selectOpt = fila.find('.producto-select').find('option:selected');
+                    const precio = parseFloat(selectOpt.data('precio')) || 0;
+                    const cantidad = parseInt(fila.find('.cantidad-input').val()) || 0;
+                    
+                    let subtotal = precio * cantidad;
+                    granTotal += subtotal;
+
+                    fila.find('.subtotal-cell').text('$' + subtotal.toFixed(2));
+                });
+
+                // Autocompletamos el input del total final (que luego Leandro puede editar a mano)
+                $('#totalVentaInput').val(granTotal.toFixed(2));
             }
-        </tbody>
-    </table>
 
-    <button type="submit" class="btn btn-primary">Confirmar Venta</button>
-</form>
+            // Cuando cambia el producto, seteamos cantidad en 1 si está vacío y recalculamos
+            $('.producto-select').on('change', function() {
+                const fila = $(this).closest('tr');
+                if ($(this).val() && !fila.find('.cantidad-input').val()) {
+                    fila.find('.cantidad-input').val(1);
+                }
+                calcularTotales();
+            });
 
-<h4>Historial de Ventas</h4>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Medio de Pago</th>
-            <th>Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var venta in (IEnumerable<VinotecaApp.Models.Venta>)ViewBag.Ventas)
-        {
-            <tr>
-                <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                <td>@(venta.Cliente != null ? venta.Cliente.Apellido + ", " + venta.Cliente.Nombre : "-")</td>
-                <td>@venta.MedioPago</td>
-                <td>@venta.Total.ToString("C")</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            // Si cambian la cantidad, recalculamos
+            $(document).on('input', '.cantidad-input', function() {
+                calcularTotales();
+            });
+            
+        });
+    </script>
+}

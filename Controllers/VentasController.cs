@@ -30,6 +30,7 @@ namespace VinotecaApp.Controllers
         }
 
         // POST: Ventas/Create
+        // POST: Ventas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VentaCreateViewModel model)
@@ -57,10 +58,10 @@ namespace VinotecaApp.Controllers
             {
                 ClienteId = model.ClienteId,
                 MedioPago = model.MedioPago,
-                Fecha = DateTime.Now
+                Fecha = DateTime.Now,
+                // Usamos directamente el total final que envió la vista (respetando si Leandro lo editó)
+                Total = model.TotalFinal 
             };
-
-            decimal totalVenta = 0;
 
             foreach (var linea in lineasCargadas)
             {
@@ -91,11 +92,9 @@ namespace VinotecaApp.Controllers
                 };
 
                 venta.Detalles.Add(detalle);
-                totalVenta += detalle.Subtotal;
                 producto.Stock -= linea.Cantidad.Value;
             }
 
-            venta.Total = totalVenta;
             _context.Ventas.Add(venta);
 
             if (model.MedioPago == "CuentaCorriente")
@@ -105,7 +104,7 @@ namespace VinotecaApp.Controllers
                     ClienteId = model.ClienteId,
                     Fecha = DateTime.Now,
                     Tipo = "Debito",
-                    Monto = totalVenta,
+                    Monto = model.TotalFinal, // El movimiento en cuenta corriente también toma el total final editado
                     Venta = venta
                 };
                 _context.MovimientosCuentaCorriente.Add(movimiento);

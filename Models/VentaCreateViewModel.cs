@@ -10,6 +10,9 @@ namespace VinotecaApp.Models
         [Required]
         public string MedioPago { get; set; } = "Efectivo";
 
+        // Agregamos esta propiedad para capturar el total editado en la vista
+        public decimal TotalFinal { get; set; }
+
         public List<LineaVentaViewModel> Lineas { get; set; } = new List<LineaVentaViewModel>
         {
             new LineaVentaViewModel(),

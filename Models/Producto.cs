@@ -11,12 +11,14 @@ namespace VinotecaApp.Models
         [StringLength(100)]
         public string Nombre { get; set; }
 
-        [StringLength(300)]
-        public string? Descripcion { get; set; }
+        
 
         [Required(ErrorMessage = "Debe seleccionar una categoría")]
         public int CategoriaId { get; set; }
         public Categoria? Categoria { get; set; }
+
+        public int? BodegaId { get; set; }
+        public Bodega Bodega { get; set; }
 
         [Required]
         [Range(0.01, 1000000, ErrorMessage = "El precio debe ser mayor a 0")]
