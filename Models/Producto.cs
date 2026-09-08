@@ -14,16 +14,16 @@ namespace VinotecaApp.Models
         
 
         [Required(ErrorMessage = "Debe seleccionar una categoría")]
-        public int CategoriaId { get; set; }
+        public int? CategoriaId { get; set; }
         public Categoria? Categoria { get; set; }
 
         public int? BodegaId { get; set; }
-        public Bodega Bodega { get; set; }
+        public Bodega? Bodega { get; set; }
 
         [Required]
         [Range(0.01, 1000000, ErrorMessage = "El precio debe ser mayor a 0")]
         [Column(TypeName = "decimal(10,2)")]
-        public decimal Precio { get; set; }
+        public int Precio { get; set; }
 
         [Required]
         [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo")]

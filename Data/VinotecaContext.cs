@@ -17,5 +17,7 @@ namespace VinotecaApp.Data
         public DbSet<Pago> Pagos { get; set; }
 
         public DbSet<Categoria> Categorias { get; set; }
+
+        public DbSet<Bodega> Bodegas { get; set; }
     }
 }

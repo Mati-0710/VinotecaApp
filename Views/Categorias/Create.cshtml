@@ -1,0 +1,37 @@
+@model VinotecaApp.Models.Categoria
+
+@{
+    ViewData["Title"] = "Nueva Categoría";
+}
+
+<h1>Nueva Categoría</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Nombre" class="control-label fw-bold"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label fw-bold">Categoría Padre (Dejar vacío si es principal)</label>
+                <select asp-for="CategoriaPadreId" class="form-select" asp-items="@(new SelectList(ViewBag.CategoriasPadre, "Id", "Nombre"))">
+                    <option value="">-- Ninguna (Es Categoría Principal) --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Guardar" class="btn btn-success" />
+                <a asp-action="Index" class="btn btn-secondary">Volver</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

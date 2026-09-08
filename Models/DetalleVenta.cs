@@ -20,9 +20,9 @@ namespace VinotecaApp.Models
         public int Cantidad { get; set; }
 
         [Column(TypeName = "decimal(10,2)")]
-        public decimal PrecioUnitario { get; set; }
+        public int PrecioUnitario { get; set; }
 
         [Column(TypeName = "decimal(10,2)")]
-        public decimal Subtotal { get; set; }
+        public int Subtotal { get; set; }
     }
 }

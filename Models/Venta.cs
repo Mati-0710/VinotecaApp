@@ -18,7 +18,7 @@ namespace VinotecaApp.Models
         public string MedioPago { get; set; } = "Efectivo"; // "Efectivo" o "CuentaCorriente"
 
         [Column(TypeName = "decimal(10,2)")]
-        public decimal Total { get; set; }
+        public int Total { get; set; }
 
         public ICollection<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
     }

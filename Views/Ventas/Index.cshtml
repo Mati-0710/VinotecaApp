@@ -56,7 +56,7 @@
                                         <option value="">-- Buscar producto... --</option>
                                         @foreach (var p in ViewBag.Productos)
                                         {
-                                            <option value="@p.Id" data-precio="@(((decimal)p.Precio).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))">@p.Nombre</option>
+                                            <option value="@p.Id" data-precio="@p.Precio">@p.Nombre</option>
                                         }
                                     </select>
                                 </td>
@@ -140,24 +140,25 @@
             });
 
             // Función para calcular los subtotales y sugerir el total general
+            // Función para calcular los subtotales y sugerir el total general
             function calcularTotales() {
-                let granTotal = 0;
+            let granTotal = 0;
 
-                $('#tablaVentas tbody tr').each(function() {
-                    const fila = $(this);
-                    const selectOpt = fila.find('.producto-select').find('option:selected');
-                    const precio = parseFloat(selectOpt.data('precio')) || 0;
-                    const cantidad = parseInt(fila.find('.cantidad-input').val()) || 0;
-                    
-                    let subtotal = precio * cantidad;
-                    granTotal += subtotal;
+            $('#tablaVentas tbody tr').each(function() {
+            const fila = $(this);
+            const selectOpt = fila.find('.producto-select').find('option:selected');
+            const precio = parseInt(selectOpt.data('precio')) || 0;
+            const cantidad = parseInt(fila.find('.cantidad-input').val()) || 0;
+        
+            let subtotal = precio * cantidad;
+            granTotal += subtotal;
 
-                    fila.find('.subtotal-cell').text('$' + subtotal.toFixed(2));
-                });
+            fila.find('.subtotal-cell').text('$' + subtotal);
+            });
 
-                // Autocompletamos el input del total final (que luego Leandro puede editar a mano)
-                $('#totalVentaInput').val(granTotal.toFixed(2));
-            }
+    // Autocompletamos el input del total final como entero limpio
+    $('#totalVentaInput').val(granTotal);
+}
 
             // Cuando cambia el producto, seteamos cantidad en 1 si está vacío y recalculamos
             $('.producto-select').on('change', function() {

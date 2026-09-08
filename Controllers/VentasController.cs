@@ -35,22 +35,37 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VentaCreateViewModel model)
         {
-            var lineasCargadas = model.Lineas
-                .Where(l => l.ProductoId.HasValue && l.Cantidad.HasValue && l.Cantidad > 0)
-                .ToList();
-
-            if (!lineasCargadas.Any())
+            // --- ASIGNAR CONSUMIDOR FINAL POR DEFECTO SI QUEDÓ VACÍO ---
+            if (model.ClienteId == 0)
             {
-                ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
+                var consumidorFinal = await _context.Clientes
+                .FirstOrDefaultAsync(c => c.DniCuit == "00000000" || c.Nombre == "Consumidor");
+            
+            if (consumidorFinal != null)
+            {
+                model.ClienteId = consumidorFinal.Id;
             }
+            }
+    // ---------------------------------------------------------
+
+        var lineasCargadas = model.Lineas
+        .Where(l => l.ProductoId.HasValue && l.Cantidad.HasValue && l.Cantidad > 0)
+        .ToList();
+
+        if (!lineasCargadas.Any())
+        {
+            ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
+        }
+    
+    // ... el resto de tu código de validación y guardado ...
 
             if (!ModelState.IsValid)
             {
                 CargarListasDesplegables();
                 ViewBag.Ventas = await _context.Ventas
-                    .Include(v => v.Cliente)
-                    .OrderByDescending(v => v.Fecha)
-                    .ToListAsync();
+                .Include(v => v.Cliente)
+                .OrderByDescending(v => v.Fecha)
+                .ToListAsync();
                 return View("Index", model);
             }
 
@@ -59,8 +74,7 @@ namespace VinotecaApp.Controllers
                 ClienteId = model.ClienteId,
                 MedioPago = model.MedioPago,
                 Fecha = DateTime.Now,
-                // Usamos directamente el total final que envió la vista (respetando si Leandro lo editó)
-                Total = model.TotalFinal 
+                Total = (int)model.TotalFinal // Cast explícito a int
             };
 
             foreach (var linea in lineasCargadas)
@@ -83,37 +97,37 @@ namespace VinotecaApp.Controllers
                     return View("Index", model);
                 }
 
-                var detalle = new DetalleVenta
-                {
-                    ProductoId = producto.Id,
-                    Cantidad = linea.Cantidad!.Value,
-                    PrecioUnitario = producto.Precio,
-                    Subtotal = producto.Precio * linea.Cantidad.Value
-                };
+            var detalle = new DetalleVenta
+            {
+                ProductoId = producto.Id,
+                Cantidad = linea.Cantidad!.Value,
+                PrecioUnitario = producto.Precio,
+                Subtotal = (int)(producto.Precio * linea.Cantidad.Value) // Aseguramos cast a int
+            };
 
                 venta.Detalles.Add(detalle);
                 producto.Stock -= linea.Cantidad.Value;
-            }
-
-            _context.Ventas.Add(venta);
-
-            if (model.MedioPago == "CuentaCorriente")
-            {
-                var movimiento = new MovimientoCuentaCorriente
-                {
-                    ClienteId = model.ClienteId,
-                    Fecha = DateTime.Now,
-                    Tipo = "Debito",
-                    Monto = model.TotalFinal, // El movimiento en cuenta corriente también toma el total final editado
-                    Venta = venta
-                };
-                _context.MovimientosCuentaCorriente.Add(movimiento);
-            }
-
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
         }
+
+    _context.Ventas.Add(venta);
+
+    if (model.MedioPago == "CuentaCorriente")
+    {
+        var movimiento = new MovimientoCuentaCorriente
+        {
+            ClienteId = model.ClienteId,
+            Fecha = DateTime.Now,
+            Tipo = "Debito",
+            Monto = (int)model.TotalFinal, // Cast explícito a int aquí también
+            Venta = venta
+        };
+        _context.MovimientosCuentaCorriente.Add(movimiento);
+    }
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Index));
+}
 
         private void CargarListasDesplegables()
         {

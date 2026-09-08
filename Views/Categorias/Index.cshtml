@@ -1,0 +1,33 @@
+@model IEnumerable<VinotecaApp.Models.Categoria>
+
+@{
+    ViewData["Title"] = "Categorías";
+}
+
+<h1>Listado de Categorías</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Nueva Categoría</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Categoría Padre (Agrupadora)</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model) {
+            <tr>
+                <td>@item.Nombre</td>
+                <td>@(item.CategoriaPadre?.Nombre ?? "Principal / Ninguna")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Editar</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
