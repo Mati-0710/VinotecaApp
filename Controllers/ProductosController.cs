@@ -15,12 +15,14 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: Productos
-        public async Task<IActionResult> Index(int? categoriaId, int? bodegaId, string buscar)
+        // GET: Productos
+        [HttpGet]
+        public async Task<IActionResult> Index(string buscar, int? categoriaId, int? bodegaId)
         {
             var query = _context.Productos
-            .Include(p => p.Categoria)
-            .Include(p => p.Bodega)
-            .AsQueryable();
+                .Include(p => p.Categoria)
+                .Include(p => p.Bodega)
+                .AsQueryable();
 
             // 1. Filtro por texto
             if (!string.IsNullOrEmpty(buscar))
@@ -41,26 +43,27 @@ namespace VinotecaApp.Controllers
                 query = query.Where(p => p.BodegaId == bodegaId.Value);
             }
 
+            // Ejecutamos la consulta aplicando el ordenamiento correcto
             var productos = await query
-            .OrderBy(p => p.Categoria!.Nombre)
-            .ThenBy(p => p.Nombre)
-            .ToListAsync();
+                .OrderBy(p => p.Categoria!.Nombre)
+                .ThenBy(p => p.Nombre)
+                .ToListAsync();
 
-            ViewBag.Categorias = await _context.Categorias
-            .OrderBy(c => c.Nombre)
-            .ToListAsync();
-
-            ViewBag.Bodegas = await _context.Bodegas
-            .OrderBy(b => b.Nombre)
-            .ToListAsync();
-
+            // Guardamos los filtros actuales y las listas para los desplegables
             ViewBag.CategoriaSeleccionada = categoriaId;
             ViewBag.BodegaSeleccionada = bodegaId;
             ViewBag.Buscar = buscar;
+            
+            ViewBag.Categorias = await _context.Categorias
+                .OrderBy(c => c.Nombre)
+                .ToListAsync();
+
+            ViewBag.Bodegas = await _context.Bodegas
+                .OrderBy(b => b.Nombre)
+                .ToListAsync();
 
             return View(productos);
         }
-
         // GET: Productos/Create
         public async Task<IActionResult> Create()
         {

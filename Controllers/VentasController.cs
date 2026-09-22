@@ -15,130 +15,207 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: Ventas
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
-            CargarListasDesplegables();
+            await CargarListasDesplegablesAsync();
 
+            // Historial de ventas trayendo cliente y los detalles con sus productos
             var ventas = await _context.Ventas
                 .Include(v => v.Cliente)
+                .Include(v => v.Detalles)
+                    .ThenInclude(d => d.Producto)
                 .OrderByDescending(v => v.Fecha)
                 .ToListAsync();
 
             ViewBag.Ventas = ventas;
 
-            return View(new VentaCreateViewModel());
+            // Buscamos al Consumidor Final de forma inequívoca por su bandera booleana
+            var consumidorFinal = await _context.Clientes
+                .FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+
+            var model = new VentaCreateViewModel
+            {
+                Fecha = DateTime.Now,
+                ClienteId = consumidorFinal?.Id ?? 0
+            };
+
+            return View(model);
         }
 
-        // POST: Ventas/Create
         // POST: Ventas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VentaCreateViewModel model)
         {
-            // --- ASIGNAR CONSUMIDOR FINAL POR DEFECTO SI QUEDÓ VACÍO ---
+            // 1. Si no se eligió cliente o llegó en 0, asignamos el Consumidor Final por defecto
             if (model.ClienteId == 0)
             {
                 var consumidorFinal = await _context.Clientes
-                .FirstOrDefaultAsync(c => c.DniCuit == "00000000" || c.Nombre == "Consumidor");
-            
-            if (consumidorFinal != null)
+                    .FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+                    
+                if (consumidorFinal != null)
+                {
+                    model.ClienteId = consumidorFinal.Id;
+                }
+            }
+
+            // 2. Agrupar líneas para evitar duplicados de stock y filtrar vacíos
+            var lineasProcesadas = model.Lineas
+                .Where(l => l.ProductoId.HasValue && l.Cantidad.HasValue && l.Cantidad > 0)
+                .GroupBy(l => l.ProductoId!.Value)
+                .Select(g => new { ProductoId = g.Key, Cantidad = g.Sum(x => x.Cantidad!.Value) })
+                .ToList();
+
+            if (!lineasProcesadas.Any())
             {
-                model.ClienteId = consumidorFinal.Id;
+                ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
             }
+            // Validación extra: El Consumidor Final no puede usar Cuenta Corriente
+            var consumidorFinalDb = await _context.Clientes.FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+            if (model.ClienteId == consumidorFinalDb?.Id && model.MedioPago == "CuentaCorriente")
+            {
+                ModelState.AddModelError("", "El Consumidor Final no puede tener Cuenta Corriente. Seleccione Efectivo, Tarjeta o Transferencia.");
             }
-    // ---------------------------------------------------------
-
-        var lineasCargadas = model.Lineas
-        .Where(l => l.ProductoId.HasValue && l.Cantidad.HasValue && l.Cantidad > 0)
-        .ToList();
-
-        if (!lineasCargadas.Any())
-        {
-            ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
-        }
-    
-    // ... el resto de tu código de validación y guardado ...
 
             if (!ModelState.IsValid)
             {
-                CargarListasDesplegables();
+                await CargarListasDesplegablesAsync();
                 ViewBag.Ventas = await _context.Ventas
-                .Include(v => v.Cliente)
-                .OrderByDescending(v => v.Fecha)
-                .ToListAsync();
+                    .Include(v => v.Cliente)
+                    .Include(v => v.Detalles)
+                        .ThenInclude(d => d.Producto)
+                    .OrderByDescending(v => v.Fecha)
+                    .ToListAsync();
                 return View("Index", model);
             }
 
-            var venta = new Venta
+            // 3. Transacción para asegurar atomicidad (Todo o Nada)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                ClienteId = model.ClienteId,
-                MedioPago = model.MedioPago,
-                Fecha = DateTime.Now,
-                Total = (int)model.TotalFinal // Cast explícito a int
-            };
-
-            foreach (var linea in lineasCargadas)
-            {
-                var producto = await _context.Productos.FindAsync(linea.ProductoId);
-
-                if (producto == null)
+                var venta = new Venta
                 {
-                    ModelState.AddModelError("", "Producto no encontrado.");
-                    CargarListasDesplegables();
-                    ViewBag.Ventas = await _context.Ventas.Include(v => v.Cliente).OrderByDescending(v => v.Fecha).ToListAsync();
-                    return View("Index", model);
+                    ClienteId = model.ClienteId,
+                    MedioPago = model.MedioPago,
+                    Fecha = DateTime.Now,
+                    Total = 0 
+                };
+
+                decimal calculoTotalSistema = 0;
+
+                foreach (var item in lineasProcesadas)
+                {
+                    var producto = await _context.Productos.FindAsync(item.ProductoId);
+
+                    if (producto == null)
+                    {
+                        ModelState.AddModelError("", "Uno de los productos seleccionados no existe.");
+                        await transaction.RollbackAsync();
+                        await RecargarVistaErrorAsync(model);
+                        return View("Index", model);
+                    }
+
+                    if (producto.Stock < item.Cantidad)
+                    {
+                        ModelState.AddModelError("", $"Stock insuficiente para '{producto.Nombre}'. Disponible: {producto.Stock}.");
+                        await transaction.RollbackAsync();
+                        await RecargarVistaErrorAsync(model);
+                        return View("Index", model);
+                    }
+
+                    decimal subtotalLinea = producto.Precio * item.Cantidad;
+                    calculoTotalSistema += subtotalLinea;
+
+                    var detalle = new DetalleVenta
+                    {
+                        ProductoId = producto.Id,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = producto.Precio,
+                        Subtotal = subtotalLinea
+                    };
+
+                    venta.Detalles.Add(detalle);
+                    producto.Stock -= item.Cantidad;
                 }
 
-                if (producto.Stock < linea.Cantidad)
+                // Respetamos el total editado por Leandro si aplicó promoción, caso contrario usamos el del sistema
+                venta.Total = model.TotalFinal > 0 ? model.TotalFinal : calculoTotalSistema;
+                _context.Ventas.Add(venta);
+
+                // Si es cuenta corriente, generamos el movimiento de débito
+                if (model.MedioPago == "CuentaCorriente")
                 {
-                    ModelState.AddModelError("", $"Stock insuficiente para '{producto.Nombre}'. Disponible: {producto.Stock}.");
-                    CargarListasDesplegables();
-                    ViewBag.Ventas = await _context.Ventas.Include(v => v.Cliente).OrderByDescending(v => v.Fecha).ToListAsync();
-                    return View("Index", model);
+                    var movimiento = new MovimientoCuentaCorriente
+                    {
+                        ClienteId = model.ClienteId,
+                        Fecha = DateTime.Now,
+                        Tipo = "Debito",
+                        Monto = venta.Total,
+                        Venta = venta
+                    };
+                    _context.MovimientosCuentaCorriente.Add(movimiento);
                 }
 
-            var detalle = new DetalleVenta
-            {
-                ProductoId = producto.Id,
-                Cantidad = linea.Cantidad!.Value,
-                PrecioUnitario = producto.Precio,
-                Subtotal = (int)(producto.Precio * linea.Cantidad.Value) // Aseguramos cast a int
-            };
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-                venta.Detalles.Add(detalle);
-                producto.Stock -= linea.Cantidad.Value;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                ModelState.AddModelError("", "Ocurrió un error inesperado al procesar la venta.");
+                await RecargarVistaErrorAsync(model);
+                return View("Index", model);
+            }
         }
 
-    _context.Ventas.Add(venta);
-
-    if (model.MedioPago == "CuentaCorriente")
-    {
-        var movimiento = new MovimientoCuentaCorriente
+        // Métodos auxiliares privados para mantener limpio el código
+        private async Task CargarListasDesplegablesAsync()
         {
-            ClienteId = model.ClienteId,
-            Fecha = DateTime.Now,
-            Tipo = "Debito",
-            Monto = (int)model.TotalFinal, // Cast explícito a int aquí también
-            Venta = venta
-        };
-        _context.MovimientosCuentaCorriente.Add(movimiento);
-    }
-
-    await _context.SaveChangesAsync();
-
-    return RedirectToAction(nameof(Index));
-}
-
-        private void CargarListasDesplegables()
-        {
-            ViewBag.Clientes = _context.Clientes
+            ViewBag.Clientes = await _context.Clientes
                 .OrderBy(c => c.Apellido)
-                .Select(c => new { c.Id, NombreCompleto = c.Apellido + ", " + c.Nombre })
-                .ToList();
+                .ToListAsync();
 
-            ViewBag.Productos = _context.Productos
+            ViewBag.Productos = await _context.Productos
                 .OrderBy(p => p.Nombre)
-                .ToList();
+                .ToListAsync();
+        }
+
+        private async Task RecargarVistaErrorAsync(VentaCreateViewModel model)
+        {
+            await CargarListasDesplegablesAsync();
+            ViewBag.Ventas = await _context.Ventas
+                .Include(v => v.Cliente)
+                .Include(v => v.Detalles)
+                    .ThenInclude(d => d.Producto)
+                .OrderByDescending(v => v.Fecha)
+                .ToListAsync();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> BuscarProductosAjax(string q)
+        {
+            var query = _context.Productos.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = query.Where(p => p.Nombre.Contains(q));
+            }
+
+        // Traemos solo los 20 primeros resultados que tengan stock para que sea rapidísimo
+        var productos = await query
+        .Where(p => p.Stock > 0)
+        .Take(20)
+        .Select(p => new {
+            id = p.Id,
+            text = p.Nombre,
+            precio = p.Precio
+        })
+        .ToListAsync();
+
+        return Json(new { results = productos });
         }
     }
 }

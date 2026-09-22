@@ -17,34 +17,34 @@ namespace VinotecaApp.Controllers
         public async Task<IActionResult> Index()
         {
             var hoy = DateTime.Now;
-
+    
             var ventasDelMes = await _context.Ventas
-                .Where(v => v.Fecha.Month == hoy.Month && v.Fecha.Year == hoy.Year)
-                .ToListAsync();
-
+            .Where(v => v.Fecha.Month == hoy.Month && v.Fecha.Year == hoy.Year)
+            .ToListAsync();
+        
             var ventasDelDia = ventasDelMes
-                .Where(v => v.Fecha.Date == hoy.Date)
-                .ToList();
+            .Where(v => v.Fecha.Date == hoy.Date)
+            .ToList();
 
             var clientes = await _context.Clientes
-                .Include(c => c.Movimientos)
-                .ToListAsync();
+            .Include(c => c.MovimientosCuentaCorriente)
+            .ToListAsync();
 
             var clientesConDeuda = clientes
-                .Select(c => new ClienteSaldoViewModel
-                {
-                    NombreCompleto = $"{c.Apellido}, {c.Nombre}",
-                    Saldo = c.Movimientos
-                        .Sum(m => m.Tipo == "Debito" ? m.Monto : -m.Monto)
-                })
+            .Select(c => new ClienteSaldoViewModel
+            {
+                NombreCompleto = $"{c.Apellido}, {c.Nombre}",
+                Saldo = c.MovimientosCuentaCorriente
+                    .Sum(m => m.Tipo == "Debito" ? m.Monto : -m.Monto)
+            })
                 .Where(c => c.Saldo > 0)
                 .OrderByDescending(c => c.Saldo)
                 .ToList();
 
             var productosStockBajo = await _context.Productos
-                .Where(p => p.Stock <= 5)
-                .OrderBy(p => p.Stock)
-                .ToListAsync();
+            .Where(p => p.Stock <= 5)
+            .OrderBy(p => p.Stock)
+            .ToListAsync();
 
             var model = new DashboardViewModel
             {

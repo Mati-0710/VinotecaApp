@@ -4,6 +4,7 @@ namespace VinotecaApp.Models
 {
     public class VentaCreateViewModel
     {
+        public DateTime Fecha { get; set; } = DateTime.Now;
         [Required(ErrorMessage = "Debe seleccionar un cliente")]
         public int ClienteId { get; set; }
 

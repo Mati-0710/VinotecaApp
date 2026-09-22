@@ -5,6 +5,7 @@ namespace VinotecaApp.Models
     public class Cliente
     {
         public int Id { get; set; }
+        public bool EsConsumidorFinal { get; set; } = false;
 
         [Required(ErrorMessage = "El nombre es obligatorio")]
         [StringLength(50)]
@@ -29,7 +30,9 @@ namespace VinotecaApp.Models
 
         public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 
-        public ICollection<MovimientoCuentaCorriente> Movimientos { get; set; } = new List<MovimientoCuentaCorriente>();
+        public ICollection<MovimientoCuentaCorriente> MovimientosCuentaCorriente { get; set; } = new List<MovimientoCuentaCorriente>();
+
+        
 
         public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
     }

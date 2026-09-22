@@ -1,0 +1,80 @@
+@model IEnumerable<VinotecaApp.Models.MovimientoCuentaCorriente>
+
+@{
+    ViewData["Title"] = "Cuentas Corrientes";
+    // Al no poner Layout = null, automáticamente usa el panel de administración
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Historial de Cuentas Corrientes</h2>
+        <a asp-action="Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Registrar Pago / Movimiento
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover table-striped align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th class="text-center">Comprobante</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                
+                                @* Cambiá "Nombre" por la propiedad real de tu modelo Cliente si se llama distinto (ej: RazonSocial, NombreApellido) *@
+                                <td>@(item.Cliente != null ? item.Cliente.Nombre : "Sin asignar")</td>
+                                
+                                <td>
+                                    @if(item.Tipo == "Debito")
+                                    {
+                                        <span class="badge bg-danger">Deuda (Venta)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Pago a favor</span>
+                                    }
+                                </td>
+                                
+                                <td class="fw-bold @(item.Tipo == "Debito" ? "text-danger" : "text-success")">
+                                    $ @item.Monto.ToString("N2")
+                                </td>
+                                
+                                <td class="text-center">
+                                    @if (item.VentaId.HasValue)
+                                    {
+                                        <!-- Si el movimiento viene de una venta, mostramos un botón para ir a verla -->
+                                        <a asp-controller="Ventas" asp-action="Details" asp-route-id="@item.VentaId" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-receipt"></i> Ver Venta #@item.VentaId
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Abono manual</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4">No hay movimientos registrados todavía.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

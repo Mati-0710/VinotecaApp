@@ -1,107 +1,135 @@
 @model IEnumerable<VinotecaApp.Models.Producto>
 
 @{
-    ViewData["Title"] = "Productos";
-    var categorias = (List<VinotecaApp.Models.Categoria>)ViewBag.Categorias;
-    int? categoriaSeleccionada = ViewBag.CategoriaSeleccionada;
+    ViewData["Title"] = "Gestión de Productos";
 }
 
-<h1>Productos</h1>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<div class="row mb-3 align-items-end">
-    <div class="col-md-10">
-        <form method="get" asp-action="Index" class="d-flex gap-2 flex-wrap">
-            
-            <!-- Buscador por texto -->
-            <div style="min-width: 220px;" class="flex-grow-1">
-                <label class="form-label">Buscar producto</label>
-                <div class="input-group">
-                    <input type="text" name="buscar" class="form-control" placeholder="Ej: Malbec, Rutini..." value="@ViewBag.Buscar">
-                    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0 text-primary fw-bold"><i class="bi bi-box-seam"></i> Catálogo de Productos</h3>
+    <a asp-action="Create" class="btn btn-success px-4 rounded-pill fw-bold shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
+    </a>
+</div>
+
+<!-- TARJETA DE FILTROS -->
+<div class="card shadow-sm border-0 rounded-4 mb-4 bg-white">
+    <div class="card-body p-4">
+        <form asp-action="Index" method="get" id="formFiltros">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label text-secondary small fw-bold">Buscar producto</label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="buscar" class="form-control bg-light border-0" placeholder="Ej: Malbec, Rutini..." value="@ViewData["FiltroBusqueda"]" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold">Categoría</label>
+                    <select name="categoriaId" class="form-select bg-light border-0 shadow-sm">
+                        <option value="">-- Todas las categorías --</option>
+                        @if (ViewBag.Categorias != null)
+                        {
+                            foreach (var cat in ViewBag.Categorias)
+                            {
+                                <option value="@cat.Id">@cat.Nombre</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold">Bodega</label>
+                    <select name="bodegaId" class="form-select bg-light border-0 shadow-sm">
+                        <option value="">-- Todas las bodegas --</option>
+                        @if (ViewBag.Bodegas != null)
+                        {
+                            foreach (var bod in ViewBag.Bodegas)
+                            {
+                                <option value="@bod.Id">@bod.Nombre</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex">
+                    <!-- Botón de limpiar filtros (el de filtrar ya no hace falta porque es automático) -->
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100 fw-bold shadow-sm" title="Limpiar filtros">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
                 </div>
             </div>
-
-            <!-- Filtro por Categoría / Subcategoría -->
-            <div>
-                <label class="form-label">Categoría / Variedad</label>
-                <select name="categoriaId" class="form-select" onchange="this.form.submit()">
-                    <option value="">-- Todas --</option>
-                    @{
-                        var categorias = ViewBag.Categorias as List<VinotecaApp.Models.Categoria>;
-                        var padres = categorias != null ? categorias.Where(c => c.CategoriaPadreId == null).OrderBy(c => c.Nombre) : Enumerable.Empty<VinotecaApp.Models.Categoria>();
-                    }
-                    @foreach (var padre in padres)
-                    {
-                        <option value="@padre.Id" selected="@(ViewBag.CategoriaSeleccionada == padre.Id)">
-                            @padre.Nombre
-                        </option>
-                        
-                        var hijas = categorias != null ? categorias.Where(c => c.CategoriaPadreId == padre.Id).OrderBy(c => c.Nombre) : Enumerable.Empty<VinotecaApp.Models.Categoria>();
-                        foreach (var hija in hijas)
-                        {
-                            <option value="@hija.Id" selected="@(ViewBag.CategoriaSeleccionada == hija.Id)">
-                                &nbsp;&nbsp;&nbsp;— @hija.Nombre
-                            </option>
-                        }
-                    }
-                        
-                       }
-                </select>
-            </div>
-
-            <!-- Filtro por Bodega -->
-            <div>
-                <label class="form-label">Bodega</label>
-                <select name="bodegaId" class="form-select" onchange="this.form.submit()">
-                    <option value="">-- Todas las Bodegas --</option>
-                    @foreach (var bodega in (List<VinotecaApp.Models.Bodega>)ViewBag.Bodegas)
-                    {
-                        <option value="@bodega.Id" selected="@(ViewBag.BodegaSeleccionada == bodega.Id)">
-                            @bodega.Nombre
-                        </option>
-                    }
-                </select>
-            </div>
-            
-            <!-- Botón para limpiar filtros -->
-            <div>
-                <label class="form-label d-block">&nbsp;</label>
-                <a asp-action="Index" class="btn btn-light border" title="Limpiar filtros">Limpiar</a>
-            </div>
-            
         </form>
-    </div>
-
-    <div class="col-md-2 text-md-end mt-3 mt-md-0">
-        <a asp-action="Create" class="btn btn-primary w-100">Nuevo Producto</a>
     </div>
 </div>
 
-<!-- En la tabla de productos, asegurate de mostrar la columna de Bodega -->
-<table class="table table-hover">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Categoría</th>
-            <th>Bodega</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model) {
-            <tr>
-                <td>@item.Nombre</td>
-                <td>@(item.Categoria != null ? item.Categoria.Nombre : "-")</td>
-                <td>@(item.Bodega != null ? item.Bodega.Nombre : "-")</td> <!-- Mostramos la bodega -->
-                <td>$ @item.Precio.ToString("N0")</td>
-                <td>@item.Stock</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Editar</a>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Detalles</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<!-- TABLA DE PRODUCTOS -->
+<div class="card shadow border-0 rounded-4 mb-5">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light border-bottom">
+                    <tr>
+                        <th class="ps-4 py-3 text-secondary">Nombre</th>
+                        <th class="py-3 text-secondary">Categoría</th>
+                        <th class="py-3 text-secondary">Bodega</th>
+                        <th class="py-3 text-secondary">Precio</th>
+                        <th class="py-3 text-secondary">Stock</th>
+                        <th class="pe-4 py-3 text-end text-secondary">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">@item.Nombre</td>
+                            <td><span class="badge bg-light text-dark border">@(item.Categoria?.Nombre ?? "Sin categoría")</span></td>
+                            <td class="text-muted">@(item.Bodega?.Nombre ?? "Sin bodega")</td>
+                            <td class="fw-bold text-success">@item.Precio.ToString("C")</td>
+                            <td>
+                                @if (item.Stock <= 5)
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">@item.Stock (Bajo)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">@item.Stock</span>
+                                }
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="btn-group shadow-sm" role="group">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary rounded-start-pill px-3" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger rounded-end-pill px-3" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Cuando cambie el desplegable de Categoría o Bodega, filtra automáticamente
+            $('select[name="categoriaId"], select[name="bodegaId"]').on('change', function() {
+                $('#formFiltros').submit();
+            });
+
+            // Filtro automático al tipear en el buscador con un pequeño retraso (medio segundo)
+            let timer;
+            $('input[name="buscar"]').on('input', function() {
+                clearTimeout(timer);
+                timer = setTimeout(function() {
+                    $('#formFiltros').submit();
+                }, 500);
+            });
+        });
+    </script>
+}

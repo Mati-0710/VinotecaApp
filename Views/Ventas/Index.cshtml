@@ -4,117 +4,118 @@
     ViewData["Title"] = "Punto de Venta";
 }
 
-<!-- Agregamos los estilos de Select2 y su tema para Bootstrap 5 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0">Punto de Venta</h1>
+    <h3 class="mb-0 text-primary fw-bold"><i class="bi bi-shop"></i> Punto de Venta</h3>
 </div>
 
 <div asp-validation-summary="All" class="text-danger"></div>
 
-<!-- TARJETA: NUEVA VENTA -->
-<div class="card shadow-sm mb-5 border-0">
-    <div class="card-header bg-dark text-white">
-        <h5 class="mb-0">Registrar Venta</h5>
-    </div>
-    <div class="card-body bg-light">
-        <form asp-action="Create" method="post">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Cliente</label>
-                    <select asp-for="ClienteId" id="clienteSelect" asp-items="@(new SelectList(ViewBag.Clientes, "Id", "NombreCompleto"))" class="form-select">
-                        <option value="">-- Consumidor Final (Buscar cliente...) --</option>
-                    </select>
+<form asp-action="Create" method="post" id="formVenta">
+    <div class="row g-4 mb-5">
+        
+        <!-- Panel Izquierdo: Buscador y Lista de Productos -->
+        <div class="col-lg-8 col-md-7">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <select id="buscadorGlobal" class="form-select form-select-lg shadow-sm">
+                            <option value="">🔍 Buscar producto por nombre...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Acá se inyectan las tarjetas de los productos seleccionados -->
+                    <div id="contenedorProductos" class="d-flex flex-column gap-2">
+                        <!-- Las filas dinámicas entran acá -->
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Medio de Pago</label>
-                    <select asp-for="MedioPago" class="form-select">
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Resumen y Cobro -->
+        <div class="col-lg-4 col-md-5">
+            <div class="card shadow border-0 rounded-4 bg-white h-100">
+                <div class="card-body p-4 d-flex flex-column">
+                    <h5 class="fw-bold mb-4 border-bottom pb-3 text-secondary">Detalle del Ticket</h5>
+                    
+                    <label class="form-label text-muted small fw-bold">Cliente</label>
+                    <select asp-for="ClienteId" id="clienteSelect" class="form-select mb-3 bg-light shadow-sm">
+                        <option value="">-- Consumidor Final --</option>
+                        @if (ViewBag.Clientes != null)
+                        {
+                            foreach (var cliente in ViewBag.Clientes)
+                            {
+                                <option value="@cliente.Id">@(cliente.Apellido), @(cliente.Nombre)</option>
+                            }
+                        }
+                    </select>
+
+                    <label class="form-label text-muted small fw-bold">Medio de Pago</label>
+                    <select asp-for="MedioPago" class="form-select mb-4 bg-light shadow-sm">
                         <option value="Efectivo">Efectivo</option>
                         <option value="CuentaCorriente">Cuenta Corriente</option>
                     </select>
+
+                    <div class="mt-auto bg-light p-4 rounded-4 text-center border shadow-sm">
+                        <span class="text-muted fw-bold d-block mb-1">TOTAL A COBRAR</span>
+                        <div class="input-group justify-content-center">
+                            <span class="input-group-text bg-transparent border-0 fs-1 fw-bold text-success">$</span>
+                            <input type="number" step="1" name="TotalFinal" id="totalVentaInput" class="form-control bg-transparent border-0 fs-1 fw-bold text-success text-start p-0 w-75" value="0" />
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-lg w-100 mt-4 rounded-pill fw-bold shadow">
+                        Confirmar Venta <i class="bi bi-arrow-right-circle ms-2"></i>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table table-bordered bg-white" id="tablaVentas">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Producto</th>
-                            <th style="width: 130px;">Cantidad</th>
-                            <!-- Agrandamos el ancho de esta columna para que el total entre holgado -->
-                            <th style="width: 220px;" class="text-end">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (int i = 0; i < Model.Lineas.Count; i++)
-                        {
-                            <tr>
-                                <td>
-                                    <select name="Lineas[@i].ProductoId" class="form-select select2-producto producto-select">
-                                        <option value="">-- Buscar producto... --</option>
-                                        @foreach (var p in ViewBag.Productos)
-                                        {
-                                            <option value="@p.Id" data-precio="@p.Precio">@p.Nombre</option>
-                                        }
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="number" name="Lineas[@i].Cantidad" class="form-control cantidad-input" min="1" placeholder="0" />
-                                </td>
-                                <td class="text-end align-middle fw-bold subtotal-cell">
-                                    $0.00
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="2" class="text-end align-middle fw-bold fs-5">TOTAL FINAL:</td>
-                            <td>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <!-- Usamos form-control normal (sin -lg) para que no sea tan alto y el número respire bien -->
-                                    <input type="number" step="0.01" name="TotalFinal" id="totalVentaInput" class="form-control fw-bold text-success" />
-                                </div>
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <div class="d-flex justify-content-end mt-3">
-                <button type="submit" class="btn btn-success btn-lg px-5">Confirmar Venta</button>
-            </div>
-        </form>
     </div>
-</div>
+</form>
 
 <!-- TARJETA: HISTORIAL DE VENTAS -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-secondary text-white">
-        <h5 class="mb-0">Últimas Ventas</h5>
+<div class="card shadow border-0 mb-5 rounded-4">
+    <div class="card-header bg-secondary text-white rounded-top-4">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Últimas Ventas</h5>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th class="ps-3">Fecha</th>
+                    <th class="ps-4">Fecha</th>
                     <th>Cliente</th>
                     <th>Medio de Pago</th>
-                    <th class="text-end pe-3">Total</th>
+                    <th>Productos Vendidos</th>
+                    <th class="text-end pe-4">Total</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var venta in (IEnumerable<VinotecaApp.Models.Venta>)ViewBag.Ventas)
+                @if (ViewBag.Ventas != null)
                 {
-                    <tr>
-                        <td class="ps-3">@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>@(venta.Cliente != null ? venta.Cliente.Apellido + ", " + venta.Cliente.Nombre : "Consumidor Final")</td>
-                        <td><span class="badge bg-info text-dark">@venta.MedioPago</span></td>
-                        <td class="text-end pe-3 fw-bold">@venta.Total.ToString("C")</td>
-                    </tr>
+                    foreach (var venta in (IEnumerable<VinotecaApp.Models.Venta>)ViewBag.Ventas)
+                    {
+                        <tr>
+                            <td class="ps-4 text-secondary">@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="fw-bold text-dark">@(venta.Cliente != null ? venta.Cliente.Apellido + ", " + venta.Cliente.Nombre : "Consumidor Final")</td>
+                            <td><span class="badge bg-info text-dark shadow-sm">@venta.MedioPago</span></td>
+                            <td>
+                                <ul class="list-unstyled mb-0 small text-secondary">
+                                    @if (venta.Detalles != null)
+                                    {
+                                        foreach (var detalle in venta.Detalles)
+                                        {
+                                            <li><strong>@detalle.Cantidad</strong> x @(detalle.Producto?.Nombre ?? "Eliminado") (@detalle.Subtotal.ToString("C"))</li>
+                                        }
+                                    }
+                                </ul>
+                            </td>
+                            <td class="text-end pe-4 fw-bold text-success fs-6">@venta.Total.ToString("C")</td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -126,54 +127,113 @@
     
     <script>
         $(document).ready(function() {
-            
+            let rowIdx = 0;
+
             $('#clienteSelect').select2({
                 theme: 'bootstrap-5',
                 placeholder: "Tipeá para buscar un cliente...",
                 allowClear: true
             });
 
-            $('.select2-producto').select2({
+            // Buscador Maestro con AJAX
+            $('#buscadorGlobal').select2({
                 theme: 'bootstrap-5',
-                placeholder: "Buscar producto...",
-                allowClear: true
-            });
-
-            // Función para calcular los subtotales y sugerir el total general
-            // Función para calcular los subtotales y sugerir el total general
-            function calcularTotales() {
-            let granTotal = 0;
-
-            $('#tablaVentas tbody tr').each(function() {
-            const fila = $(this);
-            const selectOpt = fila.find('.producto-select').find('option:selected');
-            const precio = parseInt(selectOpt.data('precio')) || 0;
-            const cantidad = parseInt(fila.find('.cantidad-input').val()) || 0;
-        
-            let subtotal = precio * cantidad;
-            granTotal += subtotal;
-
-            fila.find('.subtotal-cell').text('$' + subtotal);
-            });
-
-    // Autocompletamos el input del total final como entero limpio
-    $('#totalVentaInput').val(granTotal);
-}
-
-            // Cuando cambia el producto, seteamos cantidad en 1 si está vacío y recalculamos
-            $('.producto-select').on('change', function() {
-                const fila = $(this).closest('tr');
-                if ($(this).val() && !fila.find('.cantidad-input').val()) {
-                    fila.find('.cantidad-input').val(1);
+                placeholder: "🔍 Buscar producto o escanear código...",
+                minimumInputLength: 2,
+                ajax: {
+                    url: '@Url.Action("BuscarProductosAjax", "Ventas")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data.results };
+                    }
                 }
+            }).on('select2:select', function (e) {
+                const data = e.params.data;
+                
+                // Evitar duplicados: si ya está en la lista, sumamos 1 a la cantidad
+                let filaExistente = $(`#fila-prod-${data.id}`);
+                if (filaExistente.length > 0) {
+                    let inputCant = filaExistente.find('.cantidad-input');
+                    inputCant.val(parseInt(inputCant.val()) + 1).trigger('input');
+                } else {
+                    agregarProductoAlTicket(data.id, data.text, data.precio);
+                }
+                
+                // Limpiar el buscador para el próximo escaneo
+                $(this).val(null).trigger('change');
+            });
+
+            function agregarProductoAlTicket(id, nombre, precio) {
+                const html = `
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded-3 bg-light fila-producto shadow-sm mb-2" id="fila-prod-${id}" data-precio="${precio}">
+                        <input type="hidden" name="Lineas.Index" value="${rowIdx}" />
+                        <input type="hidden" name="Lineas[${rowIdx}].ProductoId" value="${id}" />
+                        
+                        <div style="width: 40%;">
+                            <h6 class="mb-0 fw-bold text-dark text-truncate">${nombre}</h6>
+                            <small class="text-muted">Unitario: $${precio}</small>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle btn-minus"><i class="bi bi-dash"></i></button>
+                            <input type="number" name="Lineas[${rowIdx}].Cantidad" class="form-control text-center mx-2 cantidad-input fw-bold bg-white border-0" value="1" min="1" style="width: 60px; height: 35px;" readonly />
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle btn-plus"><i class="bi bi-plus"></i></button>
+                        </div>
+                        
+                        <div style="width: 25%;" class="text-end">
+                            <h6 class="mb-0 fw-bold text-secondary subtotal-lbl">$${precio}</h6>
+                        </div>
+                        
+                        <button type="button" class="btn btn-link text-danger btn-eliminar p-0 ms-2"><i class="bi bi-x-circle-fill fs-5"></i></button>
+                    </div>
+                `;
+                
+                $('#contenedorProductos').prepend(html);
+                rowIdx++;
+                calcularTotales();
+            }
+
+            // Controles de cantidad (+ / -)
+            $(document).on('click', '.btn-plus', function() {
+                let input = $(this).siblings('.cantidad-input');
+                input.val(parseInt(input.val()) + 1).trigger('input');
+            });
+
+            $(document).on('click', '.btn-minus', function() {
+                let input = $(this).siblings('.cantidad-input');
+                if (parseInt(input.val()) > 1) {
+                    input.val(parseInt(input.val()) - 1).trigger('input');
+                }
+            });
+
+            // Eliminar producto
+            $(document).on('click', '.btn-eliminar', function() {
+                $(this).closest('.fila-producto').remove();
                 calcularTotales();
             });
 
-            // Si cambian la cantidad, recalculamos
+            // Recalcular Subtotales y Total
             $(document).on('input', '.cantidad-input', function() {
                 calcularTotales();
             });
-            
+
+            function calcularTotales() {
+                let granTotal = 0;
+                $('.fila-producto').each(function() {
+                    const fila = $(this);
+                    const precio = parseInt(fila.attr('data-precio')) || 0;
+                    const cantidad = parseInt(fila.find('.cantidad-input').val()) || 0;
+                    
+                    let subtotal = precio * cantidad;
+                    granTotal += subtotal;
+                    fila.find('.subtotal-lbl').text('$' + subtotal);
+                });
+                $('#totalVentaInput').val(granTotal);
+            }
         });
     </script>
 }
