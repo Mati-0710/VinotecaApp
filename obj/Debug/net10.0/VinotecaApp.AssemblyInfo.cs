@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VinotecaApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+69f1de3e657ef652a026aab86b32ca159daa2826")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3077104b4b19adb7febdace0ab4c41efebc99ed8")]
 [assembly: System.Reflection.AssemblyProductAttribute("VinotecaApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VinotecaApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,5 +1,16 @@
-﻿@{
-    Layout = null; // Esto apaga la barra de Leandro
+@{
+    Layout = null;
+
+    // Un solo lugar para el número (código de país + 9 + característica sin 0 + número sin 15)
+    var whatsapp = "5493462550181";
+    string Wa(string mensaje) => $"https://wa.me/{whatsapp}?text={Uri.EscapeDataString(mensaje)}";
+
+    var categorias = new[]
+    {
+        (Titulo: "Vinos de Autor", Texto: "Bodegas boutique y partidas limitadas.", Img: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop"),
+        (Titulo: "Alta Gama", Texto: "Etiquetas consagradas para paladares exigentes.", Img: "/img/alta-gama.jpg"),
+        (Titulo: "Espumantes & Destilados", Texto: "Para brindar y celebrar ocasiones únicas.", Img: "/img/espumantes.jpg")
+    };
 }
 
 <!DOCTYPE html>
@@ -7,94 +18,190 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="EMPATIA wines: selección exclusiva de etiquetas y atención personalizada en Villa Cañás, Santa Fe." />
+    <meta name="theme-color" content="#121212" />
     <title>EMPATIA wines</title>
-    
-    <!-- Bootstrap 5 -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Iconos y Tipografías -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --color-fondo: #121212;
-            --color-madera: #d07a38; 
-            --color-texto: #f4ece4;
-            --color-oscuro-secundario: #1e1e1e;
+            --fondo: #121212;
+            --rojo: #c8102e;          /* rojo del local y del logo */
+            --dorado: #c9a24b;        /* acento: títulos y detalles */
+            --crema: #f4ece4;
+            --tarjeta: #1e1e1e;
+            --texto-suave: rgba(244, 236, 228, 0.72);
         }
 
+        html { scroll-behavior: smooth; }
+        section[id], footer[id] { scroll-margin-top: 70px; }
+
         body {
-            background-color: var(--color-fondo);
-            color: var(--color-texto);
+            background-color: var(--fondo);
+            color: var(--crema);
             font-family: 'Montserrat', sans-serif;
         }
 
-        h1, h2, h3, .fuente-titulo {
-            font-family: 'Playfair Display', serif;
+        h1, h2, h3, h4, .fuente-titulo { font-family: 'Playfair Display', serif; }
+
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--dorado);
+            outline-offset: 3px;
         }
 
+        /* ---------- Navbar ---------- */
+        .navbar-empatia {
+            padding: 1rem 0;
+            transition: background-color .3s ease, padding .3s ease, box-shadow .3s ease;
+        }
+        .navbar-empatia.nav-solido {
+            background-color: rgba(18, 18, 18, 0.96);
+            padding: .6rem 0;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, .5);
+        }
+        .navbar-empatia .navbar-collapse.show { background-color: rgba(18, 18, 18, 0.96); }
+        .navbar-empatia .navbar-brand { color: var(--crema); font-size: 1.25rem; }
+        .navbar-empatia .nav-link { color: var(--crema); }
+        .navbar-empatia .nav-link:hover { color: var(--dorado); }
+        .nav-logo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+
+        /* ---------- Hero ---------- */
         .hero-section {
             position: relative;
-            height: 80vh;
-            background: url('https://images.unsplash.com/photo-1582585434685-64bc6808770c?q=80&w=1920&auto=format&fit=crop') no-repeat center center;
-            background-size: cover;
+            min-height: 92vh;
+            padding: 110px 0 90px;
+            background: url('/img/frente-local.jpg') no-repeat center center / cover;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
         }
-
         .hero-overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(rgba(18, 18, 18, 0.7), rgba(18, 18, 18, 0.95));
+            inset: 0;
+            /* más liviano que antes: la foto se ve, y el final se funde con la sección siguiente */
+            background: linear-gradient(to bottom, rgba(18,18,18,.55) 0%, rgba(18,18,18,.72) 60%, var(--fondo) 100%);
             z-index: 1;
         }
+        .hero-content { position: relative; z-index: 2; }
 
-        .hero-content {
-            position: relative;
-            z-index: 2;
+        .logo-header {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 24px;
+            border: 2px solid rgba(201, 162, 75, .6);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .6);
+        }
+        .hero-titulo {
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, .6);
+        }
+        .hero-sub {
+            max-width: 520px;
+            margin: 0 auto 2.25rem;
+            font-weight: 300;
+            font-size: 1.15rem;
+            text-shadow: 0 1px 8px rgba(0, 0, 0, .6);
         }
 
-        .hero-title {
-            font-size: 4rem;
-            letter-spacing: 2px;
-            color: var(--color-madera);
-        }
-
-        .btn-madera {
-            background-color: var(--color-madera);
-            color: var(--color-fondo);
-            font-weight: bold;
+        /* Botón principal: crema sobre fondo oscuro, para que no se confunda con el rojo del local */
+        .btn-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: .6rem;
+            background-color: var(--crema);
+            color: #7a0a1c;
+            font-weight: 600;
+            padding: 14px 34px;
+            border: 1px solid var(--crema);
             border-radius: 0;
-            padding: 12px 30px;
-            transition: all 0.3s ease;
             text-decoration: none;
-            display: inline-block;
+            transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+        }
+        .btn-cta:hover {
+            background-color: var(--dorado);
+            border-color: var(--dorado);
+            color: #121212;
         }
 
-        .btn-madera:hover {
-            background-color: #b06225;
-            color: #fff;
+        .scroll-cue {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            z-index: 2;
+            color: var(--crema);
+            font-size: 1.6rem;
+            opacity: .75;
+            text-decoration: none;
+            transform: translateX(-50%);
+            animation: rebote 2.2s ease-in-out infinite;
+        }
+        @@keyframes rebote {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, 8px); }
+        }
+        @@media (prefers-reduced-motion: reduce) {
+            .scroll-cue { animation: none; }
+            html { scroll-behavior: auto; }
         }
 
+        /* ---------- Secciones ---------- */
+        .titulo-seccion { color: var(--dorado); font-weight: 700; }
+        .divisor {
+            width: 60px;
+            height: 3px;
+            background-color: var(--rojo);
+            margin: 1rem auto 2rem;
+        }
+        .texto-filosofia {
+            max-width: 720px;
+            line-height: 1.9;
+            font-size: 1.05rem;
+            color: var(--texto-suave);
+        }
+
+        /* ---------- Tarjetas de selección ---------- */
         .categoria-card {
-            background-color: var(--color-oscuro-secundario);
+            background-color: var(--tarjeta);
             border: 1px solid #333;
-            transition: transform 0.3s ease;
+            border-radius: 0;
+            overflow: hidden;
+            color: inherit;
+            text-decoration: none;
+            transition: border-color .3s ease;
         }
-        
-        .categoria-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--color-madera);
+        .categoria-card:hover { border-color: var(--rojo); color: inherit; }
+        .categoria-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            opacity: .85;
+            transition: transform .5s ease, opacity .3s ease;
         }
+        .categoria-card:hover img { transform: scale(1.05); opacity: 1; }
+        .categoria-texto { color: var(--texto-suave); font-size: .92rem; }
+        .categoria-consulta { color: var(--dorado); font-size: .9rem; font-weight: 600; }
+
+        /* ---------- Footer ---------- */
+        .footer-empatia { background-color: #0a0a0a; border-top: 1px solid #222; }
+        .footer-empatia a { color: var(--crema); text-decoration: none; }
+        .footer-empatia a:hover { color: var(--dorado); }
+        .footer-dato { color: var(--texto-suave); }
 
         .whatsapp-flotante {
             position: fixed;
             bottom: 30px;
             right: 30px;
             background-color: #25D366;
-            color: white;
+            color: #fff;
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -102,88 +209,101 @@
             align-items: center;
             justify-content: center;
             font-size: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .5);
             z-index: 1000;
             text-decoration: none;
         }
-        .whatsapp-flotante:hover {
-            color: white;
-            background-color: #1ebe57;
-        }
+        .whatsapp-flotante:hover { color: #fff; background-color: #1ebe57; }
     </style>
 </head>
 <body>
 
-    <section class="hero-section">
+    <nav id="nav" class="navbar navbar-expand-md fixed-top navbar-empatia" data-bs-theme="dark">
+        <div class="container">
+            <a class="navbar-brand fuente-titulo d-flex align-items-center gap-2" href="#inicio">
+                <img src="~/img/logo.jpg" alt="" class="nav-logo" />
+                EMPATIA wines
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menu">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#inicio">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#filosofia">Filosofía</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#seleccion">Selección</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section id="inicio" class="hero-section">
         <div class="hero-overlay"></div>
         <div class="hero-content container">
-            <h1 class="hero-title mb-3">EMPATIA</h1>
-            <p class="fs-4 mb-4">w i n e s</p>
-            <p class="lead mb-5 mx-auto" style="max-width: 600px;">
-                Selección exclusiva de etiquetas y atención personalizada. Descubrí el vino perfecto para cada momento.
-            </p>
-            <a href="https://wa.me/TUNUMERODEWHATSAPP" target="_blank" class="btn btn-madera btn-lg shadow-sm">
-                Consultar catálogo por WhatsApp
+            <img src="~/img/logo.jpg" alt="Logo Empatia Wines" class="logo-header" />
+            <h1 class="hero-titulo">Descubrí el vino perfecto para cada momento</h1>
+            <p class="hero-sub">Selección exclusiva de etiquetas y atención personalizada.</p>
+            <a href="@Wa("Hola! Quiero consultar el catálogo de vinos.")" target="_blank" rel="noopener" class="btn-cta">
+                <i class="bi bi-whatsapp"></i> Consultar catálogo por WhatsApp
             </a>
         </div>
+        <a href="#filosofia" class="scroll-cue" aria-label="Ir a la siguiente sección"><i class="bi bi-chevron-double-down"></i></a>
     </section>
 
-    <section class="container py-5 my-5 text-center">
-        <h2 class="mb-4" style="color: var(--color-madera);">Filosofía Empatía</h2>
-        <div class="mx-auto" style="max-width: 800px; line-height: 1.8;">
-            <p>
-                No somos solo un lugar donde comprar vinos. Creemos en escuchar, recomendar y acompañar. Nuestro objetivo es que te lleves la botella exacta que estás buscando, ya sea para una cena especial, un regalo empresarial o simplemente para disfrutar en casa.
-            </p>
+    <section id="filosofia" class="container py-5 my-4 text-center">
+        <h2 class="titulo-seccion">Filosofía Empatía</h2>
+        <div class="divisor"></div>
+        <p class="texto-filosofia mx-auto">
+            No somos solo un lugar donde comprar vinos. Creemos en escuchar, recomendar y acompañar. Nuestro objetivo es que te lleves la botella exacta que estás buscando, ya sea para una cena especial, un regalo empresarial o simplemente para disfrutar en casa.
+        </p>
+    </section>
+
+    <section id="seleccion" class="container mb-5 pb-5">
+        <h3 class="titulo-seccion text-center">Nuestra Selección</h3>
+        <div class="divisor"></div>
+        <div class="row g-4 mt-2">
+            @foreach (var c in categorias)
+            {
+                var link = Wa("Hola! Quiero consultar por " + c.Titulo);
+                <div class="col-md-4">
+                    <a href="@link" target="_blank" rel="noopener" class="card categoria-card h-100 text-center">
+                        <img src="@c.Img" alt="@c.Titulo" loading="lazy">
+                        <div class="card-body py-4">
+                            <h4 class="card-title fuente-titulo">@c.Titulo</h4>
+                            <p class="categoria-texto mb-3">@c.Texto</p>
+                            <span class="categoria-consulta">Consultar por WhatsApp</span>
+                        </div>
+                    </a>
+                </div>
+            }
         </div>
     </section>
 
-    <section class="container mb-5 pb-5">
-        <h3 class="text-center mb-5" style="color: var(--color-madera);">Nuestra Selección</h3>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card categoria-card h-100 text-center">
-                    <img src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop" class="card-img-top opacity-75" alt="Vinos de Autor">
-                    <div class="card-body py-4">
-                        <h4 class="card-title fuente-titulo">Vinos de Autor</h4>
-                        <p class="card-text text-muted small">Bodegas boutique y partidas limitadas.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card categoria-card h-100 text-center">
-                    <img src="https://images.unsplash.com/photo-1572914857317-a02d84711f58?q=80&w=600&auto=format&fit=crop" class="card-img-top opacity-75" alt="Alta Gama">
-                    <div class="card-body py-4">
-                        <h4 class="card-title fuente-titulo">Alta Gama</h4>
-                        <p class="card-text text-muted small">Etiquetas consagradas para paladares exigentes.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card categoria-card h-100 text-center">
-                    <img src="https://images.unsplash.com/photo-1590595978583-382956f71dcb?q=80&w=600&auto=format&fit=crop" class="card-img-top opacity-75" alt="Espumantes">
-                    <div class="card-body py-4">
-                        <h4 class="card-title fuente-titulo">Espumantes & Destilados</h4>
-                        <p class="card-text text-muted small">Para brindar y celebrar ocasiones únicas.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="text-center py-5" style="background-color: #0a0a0a;">
-        <h4 class="fuente-titulo mb-3" style="color: var(--color-madera);">EMPATIA wines</h4>
+    <footer id="contacto" class="footer-empatia text-center py-5">
+        <h4 class="fuente-titulo mb-4" style="color: var(--dorado);">EMPATIA wines</h4>
         <p class="mb-1">Villa Cañás, Santa Fe</p>
-        <p class="text-muted small mb-4">Lunes a Sábados</p>
-        <a href="https://www.instagram.com/empatiawines/?hl=es" target="_blank" class="text-white text-decoration-none mx-2 fs-5">
+        <p class="footer-dato small mb-3">Lunes a Sábados</p>
+        <p class="mb-4">
+            <a href="https://www.google.com/maps/search/?api=1&query=Empatia+wines+Villa+Ca%C3%B1%C3%A1s+Santa+Fe" target="_blank" rel="noopener">
+                <i class="bi bi-geo-alt"></i> Cómo llegar
+            </a>
+        </p>
+        <a href="https://www.instagram.com/empatiawines/?hl=es" target="_blank" rel="noopener" class="fs-5">
             <i class="bi bi-instagram"></i> Seguinos en Instagram
         </a>
     </footer>
 
-    <a href="https://wa.me/TUNUMERODEWHATSAPP" target="_blank" class="whatsapp-flotante">
+    <a href="@Wa("Hola! Quiero hacer una consulta.")" target="_blank" rel="noopener" class="whatsapp-flotante" aria-label="Escribinos por WhatsApp">
         <i class="bi bi-whatsapp"></i>
     </a>
 
-    <!-- Scripts de Bootstrap -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.css"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const nav = document.getElementById('nav');
+        const actualizarNav = () => nav.classList.toggle('nav-solido', window.scrollY > 60);
+        actualizarNav();
+        window.addEventListener('scroll', actualizarNav, { passive: true });
+    </script>
 </body>
 </html>
