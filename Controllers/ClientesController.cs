@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VinotecaApp.Data;
 using VinotecaApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VinotecaApp.Controllers
 {
+    [Authorize]
     public class ClientesController : Controller
     {
         private readonly VinotecaContext _context;

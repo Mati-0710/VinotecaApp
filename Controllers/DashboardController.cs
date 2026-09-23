@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VinotecaApp.Data;
 using VinotecaApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VinotecaApp.Controllers
 {
+    [Authorize]
     public class DashboardController : Controller
     {
         private readonly VinotecaContext _context;
