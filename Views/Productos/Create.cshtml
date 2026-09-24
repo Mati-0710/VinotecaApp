@@ -55,6 +55,16 @@
                 <input asp-for="Stock" class="form-control" />
                 <span asp-validation-for="Stock" class="text-danger"></span>
             </div>
+            <div class="mb-3">
+                <label asp-for="CategoriaWeb" class="form-label" style="font-weight: 600; color: #c8102e;">🌟 Categoría para la Vidriera Web</label>
+                <select asp-for="CategoriaWeb" class="form-select">
+                    <option value="">-- No mostrar en la web --</option>
+                    <option value="Alta Gama">Alta Gama</option>
+                    <option value="Espumantes">Espumantes</option>
+                    <option value="Vinos de Autor">Vinos de Autor</option>
+                </select>
+                <span asp-validation-for="CategoriaWeb" class="text-danger"></span>
+            </div>
             <div class="form-group">
                 <input type="submit" value="Guardar" class="btn btn-primary" />
             </div>

@@ -46,8 +46,9 @@ namespace VinotecaApp.Controllers
             }
 
             // Ejecutamos la consulta aplicando el ordenamiento correcto
+            // Ejecutamos la consulta aplicando el ordenamiento seguro contra nulos
             var productos = await query
-                .OrderBy(p => p.Categoria!.Nombre)
+                .OrderBy(p => p.Categoria != null ? p.Categoria.Nombre : "Sin Categoría")
                 .ThenBy(p => p.Nombre)
                 .ToListAsync();
 

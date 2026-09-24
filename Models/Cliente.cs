@@ -5,8 +5,7 @@ namespace VinotecaApp.Models
     public class Cliente
     {
         public int Id { get; set; }
-        public bool EsConsumidorFinal { get; set; } = false;
-
+        
         [Required(ErrorMessage = "El nombre es obligatorio")]
         [StringLength(50)]
         public string Nombre { get; set; }

@@ -17,18 +17,19 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: CuentasCorrientes (Lista de clientes y sus saldos actuales)
-        // GET: CuentasCorrientes (Lista de clientes y sus saldos actuales)
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             var clientes = await _context.Clientes
                 .Include(c => c.MovimientosCuentaCorriente)
-                .Where(c => c.EsConsumidorFinal == false) // <--- Filtro exacto usando el booleano
+                // Ocultamos al Consumidor Final buscando por nombre/apellido
+                .Where(c => !c.Apellido.Contains("Consumidor") && !c.Nombre.Contains("Consumidor"))
                 .OrderBy(c => c.Apellido)
                 .ToListAsync();
 
             return View(clientes);
         }
+
         // GET: CuentasCorrientes/Detalle/5 (Historial de movimientos de un cliente)
         [HttpGet]
         public async Task<IActionResult> Detalle(int id)

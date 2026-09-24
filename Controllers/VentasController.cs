@@ -32,17 +32,8 @@ namespace VinotecaApp.Controllers
 
             ViewBag.Ventas = ventas;
 
-            // Buscamos al Consumidor Final de forma inequívoca por su bandera booleana
-            var consumidorFinal = await _context.Clientes
-                .FirstOrDefaultAsync(c => c.EsConsumidorFinal);
-
-            var model = new VentaCreateViewModel
-            {
-                Fecha = DateTime.Now,
-                ClienteId = consumidorFinal?.Id ?? 0
-            };
-
-            return View(model);
+            // Le pasamos un modelo vacío para que la vista pueda armar el formulario de nueva venta
+            return View(new VentaCreateViewModel());
         }
 
         // POST: Ventas/Create
@@ -53,8 +44,9 @@ namespace VinotecaApp.Controllers
             // 1. Si no se eligió cliente o llegó en 0, asignamos el Consumidor Final por defecto
             if (model.ClienteId == 0)
             {
+                // Buscamos al cliente por nombre o apellido en lugar de usar la columna vieja
                 var consumidorFinal = await _context.Clientes
-                    .FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+                    .FirstOrDefaultAsync(c => c.Apellido.Contains("Consumidor") || c.Nombre.Contains("Consumidor"));
                     
                 if (consumidorFinal != null)
                 {
@@ -73,8 +65,11 @@ namespace VinotecaApp.Controllers
             {
                 ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
             }
+
             // Validación extra: El Consumidor Final no puede usar Cuenta Corriente
-            var consumidorFinalDb = await _context.Clientes.FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+            var consumidorFinalDb = await _context.Clientes
+                .FirstOrDefaultAsync(c => c.Apellido.Contains("Consumidor") || c.Nombre.Contains("Consumidor"));
+
             if (model.ClienteId == consumidorFinalDb?.Id && model.MedioPago == "CuentaCorriente")
             {
                 ModelState.AddModelError("", "El Consumidor Final no puede tener Cuenta Corriente. Seleccione Efectivo, Tarjeta o Transferencia.");
@@ -206,18 +201,18 @@ namespace VinotecaApp.Controllers
                 query = query.Where(p => p.Nombre.Contains(q));
             }
 
-        // Traemos solo los 20 primeros resultados que tengan stock para que sea rapidísimo
-        var productos = await query
-        .Where(p => p.Stock > 0)
-        .Take(20)
-        .Select(p => new {
-            id = p.Id,
-            text = p.Nombre,
-            precio = p.Precio
-        })
-        .ToListAsync();
+            // Traemos solo los 20 primeros resultados que tengan stock para que sea rapidísimo
+            var productos = await query
+                .Where(p => p.Stock > 0)
+                .Take(20)
+                .Select(p => new {
+                    id = p.Id,
+                    text = p.Nombre,
+                    precio = p.Precio
+                })
+                .ToListAsync();
 
-        return Json(new { results = productos });
+            return Json(new { results = productos });
         }
     }
 }

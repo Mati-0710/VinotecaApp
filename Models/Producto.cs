@@ -28,6 +28,8 @@ namespace VinotecaApp.Models
         [Required]
         [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo")]
         public int Stock { get; set; }
+        
+        public string? CategoriaWeb { get; set; }
 
         public ICollection<DetalleVenta> DetallesVenta { get; set; } = new List<DetalleVenta>();
     }
