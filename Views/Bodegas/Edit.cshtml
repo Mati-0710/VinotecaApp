@@ -1,0 +1,31 @@
+@model VinotecaApp.Models.Bodega
+
+@{
+    ViewData["Title"] = "Editar Bodega";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Editar Bodega</h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit">
+                <input type="hidden" asp-for="Id" />
+                <div class="mb-3">
+                    <label asp-for="Nombre" class="form-label fw-bold">Nombre de la Bodega</label>
+                    <input asp-for="Nombre" class="form-control" placeholder="Ej: Catena Zapata" />
+                    <span asp-validation-for="Nombre" class="text-danger"></span>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

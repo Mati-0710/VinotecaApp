@@ -5,23 +5,48 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Bodegas</h1>
+    <h1><i class="bi bi-building"></i> Bodegas</h1>
     <a asp-action="Create" class="btn btn-primary">Nueva Bodega</a>
 </div>
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Exito"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["Exito"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th class="ps-3">Nombre de la Bodega</th>
+                    <th class="text-end pe-3" style="width: 200px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var bodega in Model)
                 {
                     <tr>
-                        <td class="ps-3">@bodega.Nombre</td>
+                        <td class="ps-3 fw-bold">@bodega.Nombre</td>
+                        <td class="text-end pe-3">
+                            <a asp-action="Edit" asp-route-id="@bodega.Id" class="btn btn-sm btn-outline-primary me-1">
+                                Editar
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@bodega.Id" class="btn btn-sm btn-outline-danger">
+                                Eliminar
+                            </a>
+                        </td>
                     </tr>
                 }
             </tbody>

@@ -17,7 +17,6 @@ namespace VinotecaApp.Controllers
         }
 
         // GET: Productos
-        // GET: Productos
         [HttpGet]
         public async Task<IActionResult> Index(string buscar, int? categoriaId, int? bodegaId)
         {
@@ -45,7 +44,6 @@ namespace VinotecaApp.Controllers
                 query = query.Where(p => p.BodegaId == bodegaId.Value);
             }
 
-            // Ejecutamos la consulta aplicando el ordenamiento correcto
             // Ejecutamos la consulta aplicando el ordenamiento seguro contra nulos
             var productos = await query
                 .OrderBy(p => p.Categoria != null ? p.Categoria.Nombre : "Sin Categoría")
@@ -67,6 +65,7 @@ namespace VinotecaApp.Controllers
 
             return View(productos);
         }
+
         // GET: Productos/Create
         public async Task<IActionResult> Create()
         {
@@ -75,30 +74,22 @@ namespace VinotecaApp.Controllers
         }
 
         // POST: Productos/Create
-        // POST: Productos/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Producto producto)
         {
             if (!ModelState.IsValid)
             {
-                foreach (var modelStateKey in ModelState.Keys)
-                {
-                    var modelStateVal = ModelState[modelStateKey];
-                    foreach (var error in modelStateVal.Errors)
-                    {
-                        Console.WriteLine($"-> Key: {modelStateKey} | Error: {error.ErrorMessage}");
-                    }
-                }
-
                 await CargarListasParaFormulario();
                 return View(producto);
             }
 
             _context.Productos.Add(producto);
             await _context.SaveChangesAsync();
+            TempData["Exito"] = "Producto creado correctamente.";
             return RedirectToAction(nameof(Index));
         }
+
         // GET: Productos/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -130,6 +121,7 @@ namespace VinotecaApp.Controllers
 
             _context.Update(producto);
             await _context.SaveChangesAsync();
+            TempData["Exito"] = "Producto actualizado correctamente.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -138,10 +130,20 @@ namespace VinotecaApp.Controllers
         {
             if (id == null) return NotFound();
 
+            // CANDADO DE SEGURIDAD CONTABLE: Revisar si el producto ya se vendió
+            bool tieneVentas = await _context.Ventas.AnyAsync(v => v.Detalles.Any(d => d.ProductoId == id));
+            
+            if (tieneVentas)
+            {
+                TempData["Error"] = "Operación denegada: Este producto ya tiene ventas registradas. Si lo eliminás, se romperá el historial contable. En su lugar, editalo y dejá su stock en 0.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var producto = await _context.Productos
                 .Include(p => p.Categoria)
                 .Include(p => p.Bodega)
                 .FirstOrDefaultAsync(p => p.Id == id);
+                
             if (producto == null) return NotFound();
 
             return View(producto);
@@ -152,11 +154,20 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            // Verificación extra en el POST por seguridad
+            bool tieneVentas = await _context.Ventas.AnyAsync(v => v.Detalles.Any(d => d.ProductoId == id));
+            if (tieneVentas)
+            {
+                TempData["Error"] = "No se puede eliminar el producto porque ya forma parte del historial de ventas.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var producto = await _context.Productos.FindAsync(id);
             if (producto != null)
             {
                 _context.Productos.Remove(producto);
                 await _context.SaveChangesAsync();
+                TempData["Exito"] = "Producto eliminado correctamente.";
             }
             return RedirectToAction(nameof(Index));
         }

@@ -4,22 +4,34 @@
     ViewData["Title"] = "Eliminar Producto";
 }
 
-<h1>Eliminar Producto</h1>
+<div class="container mt-4">
+    <div class="card shadow-sm mx-auto border-danger rounded-4" style="max-width: 600px;">
+        <div class="card-header bg-danger text-white rounded-top-4">
+            <h4 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i> Eliminar Producto</h4>
+        </div>
+        <div class="card-body text-center py-4">
+            <i class="bi bi-box-seam text-danger mb-3" style="font-size: 3rem;"></i>
+            <h5 class="mt-2">¿Estás seguro de que querés eliminar este producto?</h5>
+            <p class="fs-3 fw-bold text-dark mt-3 mb-2">@Model.Nombre</p>
+            
+            <div class="bg-light p-3 rounded-3 mb-4 d-inline-block text-start text-muted">
+                <p class="mb-1"><i class="bi bi-building me-2"></i><strong>Bodega:</strong> @(Model.Bodega?.Nombre ?? "Sin bodega")</p>
+                <p class="mb-1"><i class="bi bi-tag me-2"></i><strong>Categoría:</strong> @(Model.Categoria?.Nombre ?? "Sin categoría")</p>
+                <p class="mb-1"><i class="bi bi-cash me-2"></i><strong>Precio:</strong> <span class="text-success fw-bold">@Model.Precio.ToString("C")</span></p>
+                <p class="mb-0"><i class="bi bi-boxes me-2"></i><strong>Stock actual:</strong> @Model.Stock</p>
+            </div>
 
-<h3>¿Confirmás que querés eliminar este producto?</h3>
-<div>
-    <dl class="row">
-        <dt class="col-sm-2">Nombre</dt>
-        <dd class="col-sm-10">@Model.Nombre</dd>
-        <dt class="col-sm-2">Categoría</dt>
-        <dd class="col-sm-10">@(Model.Categoria != null ? Model.Categoria.Nombre : "-")</dd>
-        <dt class="col-sm-2">Precio</dt>
-        <dd class="col-sm-10">@Model.Precio.ToString("C")</dd>
-    </dl>
+            <p class="text-muted small px-3">
+                Esta acción no se puede deshacer. Recordá que si este producto ya fue vendido alguna vez, el sistema bloqueará la eliminación por seguridad contable.
+            </p>
 
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Eliminar" class="btn btn-danger" /> |
-        <a asp-action="Index">Volver al listado</a>
-    </form>
+            <form asp-action="Delete" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-action="Index" class="btn btn-secondary px-4 rounded-pill fw-bold">Cancelar</a>
+                    <button type="submit" class="btn btn-danger px-4 rounded-pill fw-bold">Sí, Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

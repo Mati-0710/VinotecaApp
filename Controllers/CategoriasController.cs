@@ -29,7 +29,6 @@ namespace VinotecaApp.Controllers
         // GET: Categorias/Create
         public async Task<IActionResult> Create()
         {
-            // Pasamos las categorías padre disponibles para elegir si es una subcategoría
             ViewBag.CategoriasPadre = await _context.Categorias
                 .Where(c => c.CategoriaPadreId == null)
                 .OrderBy(c => c.Nombre)
@@ -98,6 +97,22 @@ namespace VinotecaApp.Controllers
         {
             if (id == null) return NotFound();
 
+            // CANDADO 1: ¿Tiene subcategorías colgando?
+            bool tieneSubcategorias = await _context.Categorias.AnyAsync(c => c.CategoriaPadreId == id);
+            if (tieneSubcategorias)
+            {
+                TempData["Error"] = "Operación denegada: Esta categoría tiene subcategorías. Borrá o reasigná las subcategorías primero.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // CANDADO 2: ¿Tiene productos asociados?
+            bool tieneProductos = await _context.Productos.AnyAsync(p => p.CategoriaId == id);
+            if (tieneProductos)
+            {
+                TempData["Error"] = "Operación denegada: Hay productos cargados en esta categoría. Cambialos de categoría antes de eliminarla.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var categoria = await _context.Categorias
                 .Include(c => c.CategoriaPadre)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -112,11 +127,22 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            // Verificación extra en el POST por seguridad
+            bool enUso = await _context.Categorias.AnyAsync(c => c.CategoriaPadreId == id) || 
+                         await _context.Productos.AnyAsync(p => p.CategoriaId == id);
+                         
+            if (enUso)
+            {
+                TempData["Error"] = "No se puede eliminar la categoría porque está en uso.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var categoria = await _context.Categorias.FindAsync(id);
             if (categoria != null)
             {
                 _context.Categorias.Remove(categoria);
                 await _context.SaveChangesAsync();
+                TempData["Exito"] = "Categoría eliminada correctamente.";
             }
             return RedirectToAction(nameof(Index));
         }
