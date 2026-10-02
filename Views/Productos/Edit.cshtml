@@ -13,131 +13,164 @@
 <h1>Editar Producto</h1>
 
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-5">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
+            
             <div class="form-group mb-2">
                 <label asp-for="Nombre" class="control-label"></label>
                 <input asp-for="Nombre" class="form-control" />
                 <span asp-validation-for="Nombre" class="text-danger"></span>
             </div>
             
-
             <div class="form-group mb-2">
-                 <label class="control-label">Categoría Principal</label>
-                 <select id="categoriaPrincipal" class="form-select">
-                 <option value="">-- Seleccionar --</option>
-                @foreach (var c in ViewBag.Categorias)
-                {
-                    <option value="@c.Id">@c.Nombre</option>
-                }
+                <label class="control-label">Categoría Principal</label>
+                <select id="categoriaPrincipal" class="form-select">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach (var c in ViewBag.Categorias)
+                    {
+                        <option value="@c.Id">@c.Nombre</option>
+                    }
                 </select>
             </div>
 
             <div class="form-group mb-3">
                 <label class="control-label">Subcategoría</label>
                 <select asp-for="CategoriaId" id="subcategoria" class="form-select" disabled>
-                <option value="">-- Cargando... --</option>
+                    <option value="">-- Cargando... --</option>
                 </select>
                 <span asp-validation-for="CategoriaId" class="text-danger"></span>
             </div>
+            
             <div class="form-group mb-3">
-            <label asp-for="BodegaId" class="control-label fw-bold">Bodega</label>
-            <select asp-for="BodegaId" class="form-select" asp-items="@(new SelectList(ViewBag.Bodegas, "Id", "Nombre"))">
-                <option value="">-- Seleccione una Bodega --</option>
-            </select>
-            <span asp-validation-for="BodegaId" class="text-danger"></span>
+                <label asp-for="BodegaId" class="control-label fw-bold">Bodega</label>
+                <select asp-for="BodegaId" class="form-select"
+                        asp-items="@(new SelectList(ViewBag.Bodegas, "Id", "Nombre"))">
+                    <option value="">-- Seleccione una Bodega --</option>
+                </select>
+                <span asp-validation-for="BodegaId" class="text-danger"></span>
             </div>
-            <div class="form-group mb-2">
-                <label asp-for="Precio" class="control-label"></label>
-                <input asp-for="Precio" class="form-control" />
-                <span asp-validation-for="Precio" class="text-danger"></span>
+            <div class="mb-3">
+                <label asp-for="Cosecha" class="form-label"></label>
+                <input asp-for="Cosecha" class="form-control" placeholder="Opcional, ej: 2021" />
+                <span asp-validation-for="Cosecha" class="text-danger"></span>
             </div>
-            <div class="form-group mb-3">
+            
+            <div class="row">
+                <div class="col-md-6 form-group mb-2">
+                    <label asp-for="Precio" class="control-label">Precio Normal</label>
+                    <input asp-for="Precio" class="form-control" />
+                    <span asp-validation-for="Precio" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 form-group mb-2">
+                    <label asp-for="PrecioOferta" class="control-label text-success">Precio Oferta</label>
+                    <input asp-for="PrecioOferta" class="form-control border-success" placeholder="Opcional" />
+                    <span asp-validation-for="PrecioOferta" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group mb-4">
                 <label asp-for="Stock" class="control-label"></label>
                 <input asp-for="Stock" class="form-control" />
                 <span asp-validation-for="Stock" class="text-danger"></span>
             </div>
-            <div class="mb-3">
-                <label asp-for="CategoriaWeb" class="form-label" style="font-weight: 600; color: #c8102e;">🌟 Categoría para la Vidriera Web</label>
-                    <select asp-for="CategoriaWeb" class="form-select">
-                    <option value="">-- No mostrar en la web --</option>
-                    <option value="Alta Gama">Alta Gama</option>
-                    <option value="Espumantes">Espumantes</option>
-                    <option value="Vinos de Autor">Vinos de Autor</option>
-                    </select>
-                <span asp-validation-for="CategoriaWeb" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Guardar" class="btn btn-primary" />
-            </div>
-        </form>
+            
+            <!-- CHECKBOXES DE COLECCIONES WEB -->
+            <div class="mb-4">
+                <label class="form-label" style="font-weight: 600; color: #c8102e;">
+                    <i class="bi bi-star-fill me-1"></i> Mostrar en Secciones de la Web
+                </label>
+                <div class="border rounded p-3 bg-light shadow-sm">
+                    @if (ViewBag.TodasLasColecciones != null)
+                    {
+                        @foreach (var col in ViewBag.TodasLasColecciones)
+                        {
+                            // Revisamos si el producto actual tiene esta colección asignada
+                            bool isChecked = Model.Colecciones != null && Model.Colecciones.Any(c => c.Id == col.Id);
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input border-secondary" type="checkbox" name="coleccionesSeleccionadas"
+                                       value="@col.Id" id="col_@col.Id" @(isChecked ? "checked" : "")>
+                                <label class="form-check-label user-select-none" for="col_@col.Id">
+                                    @col.Titulo
+                                </label>
+                            </div>
+                        }
+                    }
+                </div>
+                <small class="text-muted d-block mt-1">Podés tildar varias opciones (ej: "Alta Gama" y
+                    "Promociones").</small>
+                </div>
+            
+                <div class="form-group mb-4">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">Guardar Cambios</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Volver al listado</a>
-</div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
     
-    <script>
-        const categoriaPrincipal = document.getElementById('categoriaPrincipal');
-        const subSelect = document.getElementById('subcategoria');
+        <script>
+            const categoriaPrincipal = document.getElementById('categoriaPrincipal');
+            const subSelect = document.getElementById('subcategoria');
         
-        // Obtenemos los IDs actuales desde el modelo
-        const categoriaActualId = '@Model.CategoriaId';
-        const categoriaPadreActualId = '@(Model.Categoria?.CategoriaPadreId ?? Model.CategoriaId)';
+            // Obtenemos los IDs actuales desde el modelo
+            const categoriaActualId = '@Model.CategoriaId';
+            const categoriaPadreActualId = '@(Model.Categoria?.CategoriaPadreId ?? Model.CategoriaId)';
 
-        function cargarSubcategorias(padreId, subcategoriaSeleccionadaId) {
-            subSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            subSelect.disabled = true;
+            function cargarSubcategorias(padreId, subcategoriaSeleccionadaId) {
+                subSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+                subSelect.disabled = true;
 
-            if (!padreId) {
-                subSelect.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
-                return;
+                if (!padreId) {
+                    subSelect.innerHTML = '<option value="">-- Elegí primero una categoría --</option>';
+                    return;
+                }
+
+                fetch(`/Productos/GetSubcategorias?categoriaPadreId=${padreId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subSelect.innerHTML = '<option value="">-- Seleccionar Subcategoría --</option>';
+                    
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.value;
+                                option.textContent = item.text;
+                                // Si coincide con lo que el producto ya tiene guardado, lo pre-seleccionamos
+                                if (item.value == subcategoriaSeleccionadaId) {
+                                    option.selected = true;
+                                }
+                                subSelect.appendChild(option);
+                            });
+                        } else {
+                            const option = document.createElement('option');
+                            option.value = padreId;
+                            option.textContent = "Sin subcategorías (Guardar en categoría principal)";
+                            subSelect.appendChild(option);
+                            subSelect.value = padreId;
+                        }
+                    
+                        subSelect.disabled = false;
+                    })
+                    .catch(error => console.error('Error cargando subcategorías:', error));
             }
 
-            fetch(`/Productos/GetSubcategorias?categoriaPadreId=${padreId}`)
-                .then(response => response.json())
-                .then(data => {
-                    subSelect.innerHTML = '<option value="">-- Seleccionar Subcategoría --</option>';
-                    
-                    if (data.length > 0) {
-                        data.forEach(item => {
-                            const option = document.createElement('option');
-                            option.value = item.value;
-                            option.textContent = item.text;
-                            // Si coincide con lo que el producto ya tiene guardado, lo pre-seleccionamos
-                            if (item.value == subcategoriaSeleccionadaId) {
-                                option.selected = true;
-                            }
-                            subSelect.appendChild(option);
-                        });
-                    } else {
-                        const option = document.createElement('option');
-                        option.value = padreId;
-                        option.textContent = "Sin subcategorías (Guardar en categoría principal)";
-                        subSelect.appendChild(option);
-                        subSelect.value = padreId; 
-                    }
-                    
-                    subSelect.disabled = false;
-                })
-                .catch(error => console.error('Error cargando subcategorías:', error));
-        }
+            // 1. Cuando el usuario cambia la categoría a mano
+            categoriaPrincipal.addEventListener('change', function () {
+                cargarSubcategorias(this.value, null);
+            });
 
-        // 1. Cuando el usuario cambia la categoría a mano
-        categoriaPrincipal.addEventListener('change', function () {
-            cargarSubcategorias(this.value, null);
-        });
-
-        // 2. Al cargar la página: seteamos el select principal y buscamos los hijos
-        if (categoriaPadreActualId) {
-            categoriaPrincipal.value = categoriaPadreActualId;
-            cargarSubcategorias(categoriaPadreActualId, categoriaActualId);
-        }
-    </script>
-}
+            // 2. Al cargar la página: seteamos el select principal y buscamos los hijos
+            if (categoriaPadreActualId) {
+                categoriaPrincipal.value = categoriaPadreActualId;
+                cargarSubcategorias(categoriaPadreActualId, categoriaActualId);
+            }
+        </script>
+    }

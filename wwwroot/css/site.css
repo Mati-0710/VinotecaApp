@@ -29,3 +29,110 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* Quitar flechas de inputs numéricos en Chrome, Edge y Safari */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    appearance: none; /* Propiedad estándar */
+    margin: 0; 
+}
+
+/* Quitar flechas de inputs numéricos en Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield; /* Propiedad estándar */
+}
+
+/* --- ESTILOS PANEL DE ADMINISTRACIÓN (VINOTECA) --- */
+
+/* Tipografía Serif para títulos principales del panel */
+.admin-title {
+    font-family: 'Playfair Display', serif;
+    color: #2c2c2c;
+    font-weight: 700;
+}
+
+/* Botón Dorado (Acción Principal) */
+.btn-dorado {
+    background-color: #d4af37; /* Podés ajustar el hex al dorado exacto de tu navbar */
+    color: #fff;
+    border: 1px solid #c5a030;
+    transition: all 0.2s ease-in-out;
+}
+.btn-dorado:hover {
+    background-color: #c5a030;
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Forzar esquinas más cuadradas (4px) en botones del panel */
+.panel-admin .btn {
+    border-radius: 4px !important;
+}
+
+/* Fondo crema suave para las tarjetas del panel */
+.bg-crema {
+    background-color: #fdfbf7;
+}
+
+/* --- ESTILOS PUNTO DE VENTA (BORDÓ Y SERIF) --- */
+
+/* Color Bordó/Vino corporativo */
+.texto-bordo {
+    color: #722F37 !important; 
+}
+
+/* Botón principal de acción (Confirmar Venta) */
+.btn-bordo {
+    background-color: #722F37;
+    color: #fff;
+    border: 1px solid #5a252b;
+    transition: all 0.2s ease-in-out;
+}
+.btn-bordo:hover {
+    background-color: #5a252b;
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Tipografía Serif para el Total a Cobrar */
+.total-serif {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 2.75rem; /* Tamaño grande para que destaque */
+    letter-spacing: -1px;
+}
+
+/* Forzar esquinas rectas/suaves (4px) en los inputs y selects del panel */
+.panel-admin .form-control, 
+.panel-admin .form-select,
+.panel-admin .card {
+    border-radius: 4px !important;
+}
+
+/* Subrayado elegante para separar secciones (como Últimas Ventas) */
+.border-bordo-fino {
+    border-bottom: 2px solid #722F37;
+}
+
+/* Estilo para que el total parezca editable sin romper la estética */
+.input-total-editable {
+    border-bottom: 2px dashed #198754 !important; /* Línea punteada verde */
+    border-radius: 0 !important;
+    transition: all 0.2s ease-in-out;
+    cursor: text;
+}
+.input-total-editable:focus {
+    border-bottom: 2px solid #198754 !important; /* Línea continua al editar */
+    box-shadow: none !important;
+    background-color: rgba(25, 135, 84, 0.05) !important; /* Fondito verde muy sutil */
+    outline: none;
+}
+/* Corrección global para las cabeceras de las tablas oscuras */
+.table thead, 
+.table thead th, 
+.table-dark, 
+.table-dark th {
+    color: #ffffff !important;
+}

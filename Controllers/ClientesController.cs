@@ -37,9 +37,16 @@ namespace VinotecaApp.Controllers
 
             var cliente = await _context.Clientes
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (cliente == null)
             {
                 return NotFound();
+            }
+
+            // Le pasamos una alerta a la vista si el cliente fue dado de baja
+            if (!cliente.Activo)
+            {
+                ViewBag.AlertaInactivo = "Este cliente se encuentra dado de baja. Estás viendo su registro histórico.";
             }
 
             return View(cliente);
@@ -80,17 +87,23 @@ namespace VinotecaApp.Controllers
             {
                 return NotFound();
             }
+
+            // CANDADO GET: Evita que alguien entre a la pantalla de edición escribiendo la URL
+            if (cliente.EsConsumidorFinal)
+            {
+                TempData["Error"] = "Seguridad: No se puede editar el registro de sistema 'Consumidor Final'.";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(cliente);
         }
 
         // POST: Clientes/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nombre,Apellido,DniCuit,Telefono,Email,Direccion")] Cliente cliente)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nombre,Apellido,DniCuit,Telefono,Email,Direccion")] Cliente clienteFormulario)
         {
-            if (id != cliente.Id)
+            if (id != clienteFormulario.Id)
             {
                 return NotFound();
             }
@@ -99,12 +112,34 @@ namespace VinotecaApp.Controllers
             {
                 try
                 {
-                    _context.Update(cliente);
+                    // 1. Traemos el cliente real de la base de datos (lo trae con Activo = true)
+                    var clienteReal = await _context.Clientes.FindAsync(id);
+                    if (clienteReal == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // 2. CANDADO POST: Si es Consumidor Final, lo rebotamos
+                    if (clienteReal.EsConsumidorFinal)
+                    {
+                        TempData["Error"] = "Alerta de Seguridad: Intento de modificación a registro protegido.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // 3. Pasamos solo los datos que Leandro editó, sin tocar ni el Activo ni las colecciones
+                    clienteReal.Nombre = clienteFormulario.Nombre;
+                    clienteReal.Apellido = clienteFormulario.Apellido;
+                    clienteReal.DniCuit = clienteFormulario.DniCuit;
+                    clienteReal.Telefono = clienteFormulario.Telefono;
+                    clienteReal.Email = clienteFormulario.Email;
+                    clienteReal.Direccion = clienteFormulario.Direccion;
+
+                    // 4. Guardamos los cambios
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ClienteExists(cliente.Id))
+                    if (!ClienteExists(clienteFormulario.Id))
                     {
                         return NotFound();
                     }
@@ -115,7 +150,7 @@ namespace VinotecaApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(cliente);
+            return View(clienteFormulario);
         }
 
         // GET: Clientes/Delete/5
@@ -133,6 +168,13 @@ namespace VinotecaApp.Controllers
                 return NotFound();
             }
 
+            // CANDADO GET: Evita que alguien llegue a la pantalla de "Confirmar Eliminación"
+            if (cliente.EsConsumidorFinal)
+            {
+                TempData["Error"] = "Seguridad: No se puede eliminar el registro de sistema 'Consumidor Final'.";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(cliente);
         }
 
@@ -141,16 +183,46 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var cliente = await _context.Clientes.FindAsync(id);
+            // Traemos al cliente incluyendo sus movimientos para calcular el saldo
+            var cliente = await _context.Clientes
+                .Include(c => c.MovimientosCuentaCorriente)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (cliente != null)
             {
-                _context.Clientes.Remove(cliente);
+                // Candado 1: El Consumidor Final no se toca
+                if (cliente.EsConsumidorFinal)
+                {
+                    TempData["Error"] = "Seguridad: No se puede dar de baja al 'Consumidor Final'.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Candado 2: Cálculo de saldo pendiente usando el campo Tipo de tu modelo
+                decimal totalDebitos = cliente.MovimientosCuentaCorriente
+                    .Where(m => m.Tipo == "Debito")
+                    .Sum(m => m.Monto);
+
+                decimal totalCreditos = cliente.MovimientosCuentaCorriente
+                    .Where(m => m.Tipo == "Credito")
+                    .Sum(m => m.Monto);
+
+                decimal saldoPendiente = totalDebitos - totalCreditos;
+
+                // Si debe plata (saldo mayor a 0), frenamos la baja
+                if (saldoPendiente > 0)
+                {
+                    TempData["Error"] = $"No se puede dar de baja a {cliente.Nombre} {cliente.Apellido} porque tiene un saldo deudor de ${saldoPendiente:N2}.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Si pasó las validaciones, lo damos de baja lógicamente
+                cliente.Activo = false;
+                await _context.SaveChangesAsync();
+                TempData["Exito"] = "Cliente dado de baja con éxito.";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
         private bool ClienteExists(int id)
         {
             return _context.Clientes.Any(e => e.Id == id);

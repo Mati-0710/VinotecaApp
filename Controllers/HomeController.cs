@@ -16,18 +16,19 @@ namespace VinotecaApp.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Traemos los productos que tienen stock para mostrar en la web
-            var productosWeb = await _context.Productos
-                .Include(p => p.Bodega)
-                .Include(p => p.Categoria)
-                .Where(p => p.Stock > 0) 
-                // Si querés usar tu propiedad CategoriaWeb para filtrar qué se muestra y qué no, 
-                // podés agregar acá algo como: .Where(p => p.CategoriaWeb == true)
-                .OrderBy(p => p.Categoria != null ? p.Categoria.Nombre : "Otras")
-                .ThenBy(p => p.Nombre)
+            // Colecciones activas, en el orden definido, cada una con sus productos que tienen stock
+            var colecciones = await _context.Colecciones
+                .AsNoTracking()
+                .Where(c => c.Activa)
+                .OrderBy(c => c.Orden)
+                .Include(c => c.Productos.Where(p => p.Stock > 0).OrderBy(p => p.Nombre))
+                    .ThenInclude(p => p.Bodega)
                 .ToListAsync();
 
-            return View(productosWeb);
+            // No mostramos colecciones que quedaron sin productos disponibles
+            colecciones = colecciones.Where(c => c.Productos.Count > 0).ToList();
+
+            return View(colecciones);
         }
 
         public IActionResult Privacy()

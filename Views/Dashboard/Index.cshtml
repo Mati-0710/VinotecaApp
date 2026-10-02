@@ -4,83 +4,97 @@
     ViewData["Title"] = "Estadísticas";
 }
 
-<h1>Estadísticas</h1>
+<h1 class="page-title mb-4"><i class="bi bi-bar-chart-line me-2"></i>Estadísticas</h1>
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Ventas de hoy</h5>
-                <p class="card-text fs-3">@Model.TotalVentasDia.ToString("C")</p>
-                <p class="card-text">@Model.CantidadVentasDia venta(s)</p>
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-lg-3">
+        <div class="card stat-card stat-bordo h-100">
+            <div class="card-body d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Ventas de hoy</div>
+                    <div class="stat-valor">@Model.TotalVentasDia.ToString("C")</div>
+                    <div class="small opacity-75">@Model.CantidadVentasDia venta(s)</div>
+                </div>
+                <i class="bi bi-cash-coin stat-icono"></i>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Ventas del mes</h5>
-                <p class="card-text fs-3">@Model.TotalVentasMes.ToString("C")</p>
-                <p class="card-text">@Model.CantidadVentasMes venta(s)</p>
+    <div class="col-md-4 col-lg-3">
+        <div class="card stat-card stat-oscuro h-100">
+            <div class="card-body d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Ventas del mes</div>
+                    <div class="stat-valor">@Model.TotalVentasMes.ToString("C")</div>
+                    <div class="small opacity-75">@Model.CantidadVentasMes venta(s)</div>
+                </div>
+                <i class="bi bi-calendar3 stat-icono"></i>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
     <div class="col-md-6">
-        <h4>Clientes con saldo deudor</h4>
-        @if (!Model.ClientesConDeuda.Any())
-        {
-            <p class="text-muted">No hay clientes con saldo pendiente.</p>
-        }
-        else
-        {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Saldo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in Model.ClientesConDeuda)
-                    {
+        <div class="card h-100">
+            <div class="card-header panel-titulo">
+                <i class="bi bi-people me-2"></i>Clientes con saldo deudor
+            </div>
+            @if (!Model.ClientesConDeuda.Any())
+            {
+                <div class="card-body text-muted">No hay clientes con saldo pendiente.</div>
+            }
+            else
+            {
+                <table class="table table-hover align-middle tabla-vino">
+                    <thead>
                         <tr>
-                            <td>@c.NombreCompleto</td>
-                            <td class="text-danger">@c.Saldo.ToString("C")</td>
+                            <th class="ps-3">Cliente</th>
+                            <th class="text-end pe-3">Saldo</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.ClientesConDeuda)
+                        {
+                            <tr>
+                                <td class="ps-3">@c.NombreCompleto</td>
+                                <td class="text-end pe-3 monto-deuda">@c.Saldo.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
     </div>
 
     <div class="col-md-6">
-        <h4>Productos con stock bajo</h4>
-        @if (!Model.ProductosStockBajo.Any())
-        {
-            <p class="text-muted">No hay productos con stock bajo.</p>
-        }
-        else
-        {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Stock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in Model.ProductosStockBajo)
-                    {
+        <div class="card h-100">
+            <div class="card-header panel-titulo">
+                <i class="bi bi-exclamation-triangle me-2"></i>Productos con stock bajo
+            </div>
+            @if (!Model.ProductosStockBajo.Any())
+            {
+                <div class="card-body text-muted">No hay productos con stock bajo.</div>
+            }
+            else
+            {
+                <table class="table table-hover align-middle tabla-vino">
+                    <thead>
                         <tr>
-                            <td>@p.Nombre</td>
-                            <td class="text-warning">@p.Stock</td>
+                            <th class="ps-3">Producto</th>
+                            <th class="text-end pe-3">Stock</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.ProductosStockBajo)
+                        {
+                            <tr>
+                                <td class="ps-3">@p.Nombre</td>
+                                <td class="text-end pe-3"><span class="badge badge-stock">@p.Stock</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
     </div>
 </div>

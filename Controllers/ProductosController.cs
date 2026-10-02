@@ -23,19 +23,24 @@ namespace VinotecaApp.Controllers
             var query = _context.Productos
                 .Include(p => p.Categoria)
                 .Include(p => p.Bodega)
+                .Where(p => p.Activo)
                 .AsQueryable();
 
-            // 1. Filtro por texto
-            if (!string.IsNullOrEmpty(buscar))
+            // 1. Filtro por texto: busca en nombre, bodega y categoría
+            if (!string.IsNullOrWhiteSpace(buscar))
             {
-                query = query.Where(p => p.Nombre.Contains(buscar));
+                var texto = buscar.Trim();
+                query = query.Where(p =>
+                    p.Nombre.Contains(texto) ||
+                    (p.Bodega != null && p.Bodega.Nombre.Contains(texto)) ||
+                    (p.Categoria != null && p.Categoria.Nombre.Contains(texto)));
             }
 
             // 2. Filtro por categoría o subcategoría
             if (categoriaId.HasValue)
             {
-                query = query.Where(p => p.CategoriaId == categoriaId.Value || 
-                                       p.Categoria!.CategoriaPadreId == categoriaId.Value);
+                query = query.Where(p => p.CategoriaId == categoriaId.Value ||
+                                         p.Categoria!.CategoriaPadreId == categoriaId.Value);
             }
 
             // 3. Filtro por Bodega
@@ -44,17 +49,16 @@ namespace VinotecaApp.Controllers
                 query = query.Where(p => p.BodegaId == bodegaId.Value);
             }
 
-            // Ejecutamos la consulta aplicando el ordenamiento seguro contra nulos
+            // Orden alfabético por nombre (lo más práctico para la consulta diaria)
             var productos = await query
-                .OrderBy(p => p.Categoria != null ? p.Categoria.Nombre : "Sin Categoría")
-                .ThenBy(p => p.Nombre)
+                .OrderBy(p => p.Nombre)
+                .ThenBy(p => p.Categoria != null ? p.Categoria.Nombre : "")
                 .ToListAsync();
 
-            // Guardamos los filtros actuales y las listas para los desplegables
             ViewBag.CategoriaSeleccionada = categoriaId;
             ViewBag.BodegaSeleccionada = bodegaId;
             ViewBag.Buscar = buscar;
-            
+
             ViewBag.Categorias = await _context.Categorias
                 .OrderBy(c => c.Nombre)
                 .ToListAsync();
@@ -78,6 +82,8 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Producto producto)
         {
+            await ValidarProducto(producto);
+
             if (!ModelState.IsValid)
             {
                 await CargarListasParaFormulario();
@@ -95,31 +101,76 @@ namespace VinotecaApp.Controllers
         {
             if (id == null) return NotFound();
 
+            // Incluimos las Colecciones para saber cuáles tiene tildadas actualmente
             var producto = await _context.Productos
                 .Include(p => p.Categoria)
                 .Include(p => p.Bodega)
+                .Include(p => p.Colecciones)
                 .FirstOrDefaultAsync(p => p.Id == id);
-        
+
             if (producto == null) return NotFound();
 
             await CargarListasParaFormulario();
+            await CargarColeccionesParaFormulario();
+
             return View(producto);
         }
 
         // POST: Productos/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Producto producto)
+        public async Task<IActionResult> Edit(int id, Producto producto, int[] coleccionesSeleccionadas)
         {
             if (id != producto.Id) return NotFound();
 
+            var seleccionadas = coleccionesSeleccionadas ?? Array.Empty<int>();
+
+            await ValidarProducto(producto);
+
             if (!ModelState.IsValid)
             {
+                // Si hay error, devolvemos la vista conservando los tildes de colecciones
+                producto.Colecciones = await _context.Colecciones
+                    .Where(c => seleccionadas.Contains(c.Id))
+                    .ToListAsync();
+
                 await CargarListasParaFormulario();
+                await CargarColeccionesParaFormulario();
                 return View(producto);
             }
 
-            _context.Update(producto);
+            // Buscamos el producto original con sus colecciones para actualizar la relación muchos a muchos
+            var productoOriginal = await _context.Productos
+                .Include(p => p.Colecciones)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (productoOriginal == null) return NotFound();
+
+            // Actualizamos los datos básicos
+            productoOriginal.Nombre = producto.Nombre;
+            productoOriginal.CategoriaId = producto.CategoriaId;
+            productoOriginal.BodegaId = producto.BodegaId;
+            productoOriginal.Cosecha = producto.Cosecha;
+            productoOriginal.Precio = producto.Precio;
+            productoOriginal.PrecioOferta = producto.PrecioOferta;
+            productoOriginal.Stock = producto.Stock;
+            productoOriginal.CategoriaWeb = producto.CategoriaWeb; // marca qué productos van a la landing
+
+            // Reemplazamos las colecciones por las que tildó
+            productoOriginal.Colecciones.Clear();
+            if (seleccionadas.Length > 0)
+            {
+                var nuevasColecciones = await _context.Colecciones
+                    .Where(c => seleccionadas.Contains(c.Id))
+                    .ToListAsync();
+
+                foreach (var col in nuevasColecciones)
+                {
+                    productoOriginal.Colecciones.Add(col);
+                }
+            }
+
+            // productoOriginal ya está siendo rastreado por EF: no hace falta _context.Update
             await _context.SaveChangesAsync();
             TempData["Exito"] = "Producto actualizado correctamente.";
             return RedirectToAction(nameof(Index));
@@ -130,21 +181,15 @@ namespace VinotecaApp.Controllers
         {
             if (id == null) return NotFound();
 
-            // CANDADO DE SEGURIDAD CONTABLE: Revisar si el producto ya se vendió
-            bool tieneVentas = await _context.Ventas.AnyAsync(v => v.Detalles.Any(d => d.ProductoId == id));
-            
-            if (tieneVentas)
-            {
-                TempData["Error"] = "Operación denegada: Este producto ya tiene ventas registradas. Si lo eliminás, se romperá el historial contable. En su lugar, editalo y dejá su stock en 0.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var producto = await _context.Productos
                 .Include(p => p.Categoria)
                 .Include(p => p.Bodega)
                 .FirstOrDefaultAsync(p => p.Id == id);
-                
+
             if (producto == null) return NotFound();
+
+            // La vista puede usar esto para avisar que el producto se va a ocultar y no a borrar
+            ViewBag.TieneVentas = await _context.DetallesVenta.AnyAsync(d => d.ProductoId == id);
 
             return View(producto);
         }
@@ -154,28 +199,53 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            // Verificación extra en el POST por seguridad
-            bool tieneVentas = await _context.Ventas.AnyAsync(v => v.Detalles.Any(d => d.ProductoId == id));
-            if (tieneVentas)
-            {
-                TempData["Error"] = "No se puede eliminar el producto porque ya forma parte del historial de ventas.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var producto = await _context.Productos.FindAsync(id);
             if (producto != null)
             {
-                _context.Productos.Remove(producto);
+                // En vez de _context.Productos.Remove(producto);
+                producto.Activo = false;
+
                 await _context.SaveChangesAsync();
-                TempData["Exito"] = "Producto eliminado correctamente.";
+                TempData["Exito"] = "Producto dado de baja con éxito.";
             }
+
             return RedirectToAction(nameof(Index));
         }
 
-        // Método auxiliar unificado para cargar Categorías y Bodegas en los formularios
+        // Validaciones de negocio compartidas por Create y Edit
+        private async Task ValidarProducto(Producto producto)
+        {
+            // Evita duplicados por espacios de más ("El Enemigo " vs "El Enemigo")
+            producto.Nombre = producto.Nombre?.Trim() ?? "";
+
+            if (producto.CategoriaId == null) return; // ya lo cubre el [Required]
+
+            // El producto debe ir en una subcategoría (hija), no en un tipo general
+            var categoria = await _context.Categorias.FindAsync(producto.CategoriaId);
+            if (categoria == null || categoria.CategoriaPadreId == null)
+            {
+                ModelState.AddModelError("CategoriaId",
+                    "Elegí una subcategoría (ej: Malbec), no un tipo general.");
+            }
+
+            // No permitir un producto idéntico (mismo nombre, categoría, bodega y cosecha)
+            var existe = await _context.Productos.AnyAsync(p =>
+                p.Id != producto.Id &&
+                p.Nombre == producto.Nombre &&
+                p.CategoriaId == producto.CategoriaId &&
+                p.BodegaId == producto.BodegaId &&
+                p.Cosecha == producto.Cosecha);
+
+            if (existe)
+            {
+                ModelState.AddModelError("Nombre",
+                    "Ya existe un producto igual (mismo nombre, categoría, bodega y cosecha).");
+            }
+        }
+
+        // Carga Categorías (solo padres) y Bodegas en los formularios
         private async Task CargarListasParaFormulario()
         {
-            // Solo traemos las categorías principales (Padres)
             ViewBag.Categorias = await _context.Categorias
                 .Where(c => c.CategoriaPadreId == null)
                 .OrderBy(c => c.Nombre)
@@ -186,16 +256,24 @@ namespace VinotecaApp.Controllers
                 .ToListAsync();
         }
 
+        // Carga todas las colecciones disponibles para los checkboxes del Edit
+        private async Task CargarColeccionesParaFormulario()
+        {
+            ViewBag.TodasLasColecciones = await _context.Colecciones
+                .OrderBy(c => c.Orden)
+                .ToListAsync();
+        }
+
         [HttpGet]
         public async Task<JsonResult> GetSubcategorias(int categoriaPadreId)
         {
-             var subcategorias = await _context.Categorias
-             .Where(c => c.CategoriaPadreId == categoriaPadreId)
-             .Select(c => new { value = c.Id, text = c.Nombre })
-             .OrderBy(c => c.text)
-             .ToListAsync();
+            var subcategorias = await _context.Categorias
+                .Where(c => c.CategoriaPadreId == categoriaPadreId)
+                .Select(c => new { value = c.Id, text = c.Nombre })
+                .OrderBy(c => c.text)
+                .ToListAsync();
 
-             return Json(subcategorias);
+            return Json(subcategorias);
         }
     }
 }

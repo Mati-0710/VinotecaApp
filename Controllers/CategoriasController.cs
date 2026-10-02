@@ -127,23 +127,33 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            // Verificación extra en el POST por seguridad
-            bool enUso = await _context.Categorias.AnyAsync(c => c.CategoriaPadreId == id) || 
-                         await _context.Productos.AnyAsync(p => p.CategoriaId == id);
-                         
-            if (enUso)
+            var categoria = await _context.Categorias.FindAsync(id);
+            if (categoria == null)
             {
-                TempData["Error"] = "No se puede eliminar la categoría porque está en uso.";
+                return NotFound();
+            }
+
+            // Validación doble: ¿Tiene productos o tiene subcategorías hijas?
+            bool tieneProductos = await _context.Productos.AnyAsync(p => p.CategoriaId == id);
+            bool tieneSubcategorias = await _context.Categorias.AnyAsync(c => c.CategoriaPadreId == id);
+
+            if (tieneProductos || tieneSubcategorias)
+            {
+                TempData["Error"] = $"No se puede eliminar la categoría '{categoria.Nombre}' porque contiene productos o subcategorías asociadas.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var categoria = await _context.Categorias.FindAsync(id);
-            if (categoria != null)
+            try
             {
                 _context.Categorias.Remove(categoria);
                 await _context.SaveChangesAsync();
-                TempData["Exito"] = "Categoría eliminada correctamente.";
+                TempData["Exito"] = "Categoría eliminada con éxito.";
             }
+            catch (Exception)
+            {
+                TempData["Error"] = "Ocurrió un error inesperado al intentar eliminar la categoría.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
     }

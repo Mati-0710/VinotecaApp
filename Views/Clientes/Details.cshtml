@@ -6,6 +6,13 @@
 
 <h1>Detalles del Cliente</h1>
 
+@if (ViewBag.AlertaInactivo != null)
+{
+    <div class="alert alert-warning shadow-sm">
+        <i class="bi bi-info-circle-fill me-2"></i> @ViewBag.AlertaInactivo
+    </div>
+}
+
 <div>
     <dl class="row">
         <dt class="col-sm-2">Nombre</dt>

@@ -1,3 +1,4 @@
+@model List<VinotecaApp.Models.Coleccion>
 @{
     Layout = null;
 
@@ -5,12 +6,8 @@
     var whatsapp = "5493462550181";
     string Wa(string mensaje) => $"https://wa.me/{whatsapp}?text={Uri.EscapeDataString(mensaje)}";
 
-    var categorias = new[]
-    {
-        (Titulo: "Vinos de Autor", Texto: "Bodegas boutique y partidas limitadas.", Img: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=600&auto=format&fit=crop"),
-        (Titulo: "Alta Gama", Texto: "Etiquetas consagradas para paladares exigentes.", Img: "/img/alta-gama.jpg"),
-        (Titulo: "Espumantes & Destilados", Texto: "Para brindar y celebrar ocasiones únicas.", Img: "/img/espumantes.jpg")
-    };
+    // Formato de pesos argentino: 12500 -> $12.500
+    string Pesos(decimal valor) => "$" + valor.ToString("N0", new System.Globalization.CultureInfo("es-AR"));
 }
 
 <!DOCTYPE html>
@@ -190,6 +187,60 @@
         .categoria-texto { color: var(--texto-suave); font-size: .92rem; }
         .categoria-consulta { color: var(--dorado); font-size: .9rem; font-weight: 600; }
 
+        /* La card ahora es un <button>: se resetea lo que trae el navegador */
+        button.categoria-card { padding: 0; cursor: pointer; }
+
+        /* ---------- Modal de productos ---------- */
+        .modal-empatia .modal-content {
+            background-color: var(--tarjeta);
+            color: var(--crema);
+            border: 1px solid var(--dorado);
+            border-radius: 0;
+        }
+        .modal-empatia .modal-header { border-bottom-color: #333; }
+        .modal-empatia .modal-title { color: var(--dorado); }
+
+        .producto-fila {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            padding: .85rem 0;
+            border-bottom: 1px dashed #3a3a3a;
+            color: inherit;
+            text-decoration: none;
+        }
+        .producto-fila:last-child { border-bottom: 0; }
+        .producto-fila:hover { color: inherit; }
+        .producto-fila:hover .producto-nombre { color: var(--dorado); }
+        .producto-nombre { font-weight: 600; transition: color .2s ease; }
+        .producto-detalle { display: block; font-size: .8rem; color: var(--texto-suave); }
+        .producto-precio {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            white-space: nowrap;
+            text-align: right;
+        }
+        .precio-tachado {
+            display: block;
+            font-family: 'Montserrat', sans-serif;
+            font-size: .8rem;
+            font-weight: 400;
+            color: var(--texto-suave);
+            text-decoration: line-through;
+        }
+        .precio-oferta { color: var(--dorado); }
+        .etiqueta-oferta {
+            display: inline-block;
+            margin-left: .4rem;
+            padding: 1px 7px;
+            font-size: .65rem;
+            letter-spacing: .05em;
+            background-color: var(--rojo);
+            color: #fff;
+            vertical-align: middle;
+        }
+
         /* ---------- Footer ---------- */
         .footer-empatia { background-color: #0a0a0a; border-top: 1px solid #222; }
         .footer-empatia a { color: var(--crema); text-decoration: none; }
@@ -263,18 +314,18 @@
         <h3 class="titulo-seccion text-center">Nuestra Selección</h3>
         <div class="divisor"></div>
         <div class="row g-4 mt-2">
-            @foreach (var c in categorias)
+            @foreach (var c in Model)
             {
-                var link = Wa("Hola! Quiero consultar por " + c.Titulo);
                 <div class="col-md-4">
-                    <a href="@link" target="_blank" rel="noopener" class="card categoria-card h-100 text-center">
-                        <img src="@c.Img" alt="@c.Titulo" loading="lazy">
+                    <button type="button" class="card categoria-card h-100 w-100 text-center"
+                            data-bs-toggle="modal" data-bs-target="#coleccion-@c.Id">
+                        <img src="@(string.IsNullOrWhiteSpace(c.ImagenUrl) ? "/img/logo.jpg" : c.ImagenUrl)" alt="" loading="lazy">
                         <div class="card-body py-4">
                             <h4 class="card-title fuente-titulo">@c.Titulo</h4>
                             <p class="categoria-texto mb-3">@c.Texto</p>
-                            <span class="categoria-consulta">Consultar por WhatsApp</span>
+                            <span class="categoria-consulta">Ver productos <i class="bi bi-chevron-right"></i></span>
                         </div>
-                    </a>
+                    </button>
                 </div>
             }
         </div>
@@ -293,6 +344,53 @@
             <i class="bi bi-instagram"></i> Seguinos en Instagram
         </a>
     </footer>
+
+    @* Un modal por colección: Bootstrap los muestra y oculta, sin recargar la página *@
+    @foreach (var c in Model)
+    {
+        <div class="modal fade modal-empatia" id="coleccion-@c.Id" tabindex="-1" aria-labelledby="titulo-coleccion-@c.Id" aria-hidden="true" data-bs-theme="dark">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fuente-titulo" id="titulo-coleccion-@c.Id">@c.Titulo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        @foreach (var p in c.Productos)
+                        {
+                            // Solo es oferta si tiene precio de oferta y es menor al precio normal
+                            var enOferta = p.PrecioOferta.HasValue && p.PrecioOferta.Value < p.Precio;
+
+                            <a href="@Wa("Hola! Quiero consultar por " + p.Nombre)" target="_blank" rel="noopener" class="producto-fila">
+                                <span>
+                                    <span class="producto-nombre">@p.Nombre</span>
+                                    @if (enOferta)
+                                    {
+                                        <span class="etiqueta-oferta">Oferta</span>
+                                    }
+                                    @if (p.Bodega != null)
+                                    {
+                                        <span class="producto-detalle">@p.Bodega.Nombre</span>
+                                    }
+                                </span>
+                                <span class="producto-precio">
+                                    @if (enOferta)
+                                    {
+                                        <span class="precio-tachado">@Pesos(p.Precio)</span>
+                                        <span class="precio-oferta">@Pesos(p.PrecioOferta.Value)</span>
+                                    }
+                                    else
+                                    {
+                                        @Pesos(p.Precio)
+                                    }
+                                </span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <a href="@Wa("Hola! Quiero hacer una consulta.")" target="_blank" rel="noopener" class="whatsapp-flotante" aria-label="Escribinos por WhatsApp">
         <i class="bi bi-whatsapp"></i>

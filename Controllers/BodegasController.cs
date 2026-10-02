@@ -102,21 +102,32 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            // 2. Candado secundario por si alguien fuerza el POST
-            bool tieneProductos = await _context.Productos.AnyAsync(p => p.BodegaId == id);
-            if (tieneProductos)
+            var bodega = await _context.Bodegas.FindAsync(id);
+            if (bodega == null)
             {
-                TempData["Error"] = "No se puede eliminar la bodega porque tiene vinos asociados.";
+                return NotFound();
+            }
+
+            // Validación preventiva: ¿Hay algún producto usando esta bodega?
+            bool estaEnUso = await _context.Productos.AnyAsync(p => p.BodegaId == id);
+
+            if (estaEnUso)
+            {
+                TempData["Error"] = $"No se puede eliminar la bodega '{bodega.Nombre}' porque tiene productos asociados en el catálogo.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var bodega = await _context.Bodegas.FindAsync(id);
-            if (bodega != null)
+            try
             {
                 _context.Bodegas.Remove(bodega);
                 await _context.SaveChangesAsync();
-                TempData["Exito"] = "Bodega eliminada correctamente.";
+                TempData["Exito"] = "Bodega eliminada con éxito.";
             }
+            catch (Exception)
+            {
+                TempData["Error"] = "Ocurrió un error inesperado al intentar eliminar la bodega.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 

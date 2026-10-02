@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VinotecaApp.Data;
 
@@ -11,9 +12,11 @@ using VinotecaApp.Data;
 namespace VinotecaApp.Migrations
 {
     [DbContext(typeof(VinotecaContext))]
-    partial class VinotecaContextModelSnapshot : ModelSnapshot
+    [Migration("20260930142809_AgregoActivoAProducto")]
+    partial class AgregoActivoAProducto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,9 +77,6 @@ namespace VinotecaApp.Migrations
 
                     b.HasIndex("CategoriaPadreId");
 
-                    b.HasIndex("Nombre", "CategoriaPadreId")
-                        .IsUnique();
-
                     b.ToTable("Categorias");
                 });
 
@@ -87,9 +87,6 @@ namespace VinotecaApp.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Apellido")
                         .IsRequired()
@@ -107,9 +104,6 @@ namespace VinotecaApp.Migrations
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("EsConsumidorFinal")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -271,16 +265,13 @@ namespace VinotecaApp.Migrations
                     b.Property<string>("CategoriaWeb")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("Cosecha")
-                        .HasColumnType("int");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Precio")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Precio")
+                        .HasColumnType("decimal(10,2)");
 
                     b.Property<int?>("PrecioOferta")
                         .HasColumnType("int");
@@ -293,9 +284,6 @@ namespace VinotecaApp.Migrations
                     b.HasIndex("BodegaId");
 
                     b.HasIndex("CategoriaId");
-
-                    b.HasIndex("Nombre", "CategoriaId", "BodegaId", "Cosecha")
-                        .IsUnique();
 
                     b.ToTable("Productos");
                 });
@@ -347,8 +335,7 @@ namespace VinotecaApp.Migrations
                 {
                     b.HasOne("VinotecaApp.Models.Categoria", "CategoriaPadre")
                         .WithMany("Subcategorias")
-                        .HasForeignKey("CategoriaPadreId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("CategoriaPadreId");
 
                     b.Navigation("CategoriaPadre");
                 });
@@ -377,7 +364,7 @@ namespace VinotecaApp.Migrations
                     b.HasOne("VinotecaApp.Models.Cliente", "Cliente")
                         .WithMany("MovimientosCuentaCorriente")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("VinotecaApp.Models.Venta", "Venta")
@@ -394,7 +381,7 @@ namespace VinotecaApp.Migrations
                     b.HasOne("VinotecaApp.Models.Cliente", "Cliente")
                         .WithMany("Pagos")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Cliente");
@@ -403,14 +390,13 @@ namespace VinotecaApp.Migrations
             modelBuilder.Entity("VinotecaApp.Models.Producto", b =>
                 {
                     b.HasOne("VinotecaApp.Models.Bodega", "Bodega")
-                        .WithMany("Productos")
-                        .HasForeignKey("BodegaId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .WithMany()
+                        .HasForeignKey("BodegaId");
 
                     b.HasOne("VinotecaApp.Models.Categoria", "Categoria")
                         .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Bodega");
@@ -423,15 +409,10 @@ namespace VinotecaApp.Migrations
                     b.HasOne("VinotecaApp.Models.Cliente", "Cliente")
                         .WithMany("Ventas")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Cliente");
-                });
-
-            modelBuilder.Entity("VinotecaApp.Models.Bodega", b =>
-                {
-                    b.Navigation("Productos");
                 });
 
             modelBuilder.Entity("VinotecaApp.Models.Categoria", b =>

@@ -28,6 +28,7 @@ namespace VinotecaApp.Controllers
                 .Include(v => v.Detalles)
                     .ThenInclude(d => d.Producto)
                 .OrderByDescending(v => v.Fecha)
+                .Take(10) // <-- FRENO DE RENDIMIENTO: Solo trae las últimas 10 de la base de datos
                 .ToListAsync();
 
             ViewBag.Ventas = ventas;
@@ -41,20 +42,29 @@ namespace VinotecaApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VentaCreateViewModel model)
         {
-            // 1. Si no se eligió cliente o llegó en 0, asignamos el Consumidor Final por defecto
+            // 1. Buscamos al Consumidor Final usando la bandera de sistema (Una sola vez)
+            var consumidorFinal = await _context.Clientes.FirstOrDefaultAsync(c => c.EsConsumidorFinal);
+
+            // 2. Si no se eligió cliente, frenamos y mostramos el cartel rojo lindo
             if (model.ClienteId == 0)
             {
-                // Buscamos al cliente por nombre o apellido en lugar de usar la columna vieja
-                var consumidorFinal = await _context.Clientes
-                    .FirstOrDefaultAsync(c => c.Apellido.Contains("Consumidor") || c.Nombre.Contains("Consumidor"));
-                    
-                if (consumidorFinal != null)
-                {
-                    model.ClienteId = consumidorFinal.Id;
-                }
+                // Limpiamos el error automático en inglés del framework
+                ModelState.Remove("ClienteId");
+
+                // Usamos TempData para que salga el cartel con diseño
+                TempData["Error"] = "No se seleccionó ningún cliente. Por favor, elegí un cliente de la lista o seleccioná 'Consumidor Final' para continuar.";
+                
+                await RecargarVistaErrorAsync(model);
+                return View("Index", model);
             }
 
-            // 2. Agrupar líneas para evitar duplicados de stock y filtrar vacíos
+            // 3. Validación de hierro: Cero fiado a anónimos
+            if (model.MedioPago == "CuentaCorriente" && model.ClienteId == consumidorFinal?.Id)
+            {
+                ModelState.AddModelError("", "El Consumidor Final no puede tener Cuenta Corriente. Seleccione Efectivo, Tarjeta o Transferencia.");
+            }
+
+            // 4. Agrupar líneas para evitar duplicados de stock y filtrar vacíos
             var lineasProcesadas = model.Lineas
                 .Where(l => l.ProductoId.HasValue && l.Cantidad.HasValue && l.Cantidad > 0)
                 .GroupBy(l => l.ProductoId!.Value)
@@ -66,28 +76,14 @@ namespace VinotecaApp.Controllers
                 ModelState.AddModelError("", "Debe cargar al menos un producto en la venta.");
             }
 
-            // Validación extra: El Consumidor Final no puede usar Cuenta Corriente
-            var consumidorFinalDb = await _context.Clientes
-                .FirstOrDefaultAsync(c => c.Apellido.Contains("Consumidor") || c.Nombre.Contains("Consumidor"));
-
-            if (model.ClienteId == consumidorFinalDb?.Id && model.MedioPago == "CuentaCorriente")
-            {
-                ModelState.AddModelError("", "El Consumidor Final no puede tener Cuenta Corriente. Seleccione Efectivo, Tarjeta o Transferencia.");
-            }
-
+            // Si hay errores de validación, recargamos la vista y cortamos acá
             if (!ModelState.IsValid)
             {
-                await CargarListasDesplegablesAsync();
-                ViewBag.Ventas = await _context.Ventas
-                    .Include(v => v.Cliente)
-                    .Include(v => v.Detalles)
-                        .ThenInclude(d => d.Producto)
-                    .OrderByDescending(v => v.Fecha)
-                    .ToListAsync();
+                await RecargarVistaErrorAsync(model);
                 return View("Index", model);
             }
 
-            // 3. Transacción para asegurar atomicidad (Todo o Nada)
+            // 5. Transacción para asegurar atomicidad (Todo o Nada)
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -96,7 +92,7 @@ namespace VinotecaApp.Controllers
                     ClienteId = model.ClienteId,
                     MedioPago = model.MedioPago,
                     Fecha = DateTime.Now,
-                    Total = 0 
+                    Total = 0
                 };
 
                 decimal calculoTotalSistema = 0;
@@ -172,10 +168,12 @@ namespace VinotecaApp.Controllers
         private async Task CargarListasDesplegablesAsync()
         {
             ViewBag.Clientes = await _context.Clientes
+                .Where(c => c.Activo) // <-- Oculta clientes dados de baja
                 .OrderBy(c => c.Apellido)
                 .ToListAsync();
 
             ViewBag.Productos = await _context.Productos
+                .Where(p => p.Activo) // <-- Oculta productos dados de baja
                 .OrderBy(p => p.Nombre)
                 .ToListAsync();
         }
@@ -204,10 +202,15 @@ namespace VinotecaApp.Controllers
             // Traemos solo los 20 primeros resultados que tengan stock para que sea rapidísimo
             var productos = await query
                 .Where(p => p.Stock > 0)
+                .Where(p => p.Activo && p.Nombre.Contains(q)) // Solo busca activos
                 .Take(20)
-                .Select(p => new {
+                .Select(p => new
+                {
                     id = p.Id,
-                    text = p.Nombre,
+                    // Armamos el texto: Nombre - Varietal (Cosecha)
+                    text = p.Nombre
+               + (p.Categoria != null ? " - " + p.Categoria.Nombre : "")
+               + (p.Cosecha != null ? " (" + p.Cosecha + ")" : ""),
                     precio = p.Precio
                 })
                 .ToListAsync();
